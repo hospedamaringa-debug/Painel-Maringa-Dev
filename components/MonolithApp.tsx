@@ -88,13 +88,23 @@ interface AccessInfo {
   };
 }
 
+interface SSLInfo {
+  domain: string;
+  status: string;
+  fqdns: string[];
+  crt: string;
+  key: string;
+  cabundle: string;
+}
+
 interface Service {
   id: string;
   name: string;
   host: string;
-  type: 'hosting' | 'vps' | 'dedicated';
+  type: 'hosting' | 'vps' | 'dedicated' | 'ssl';
   status: 'active' | 'suspended' | 'pending';
-  accessInfo: AccessInfo;
+  accessInfo?: AccessInfo;
+  sslInfo?: SSLInfo;
 }
 
 interface SupportTicket {
@@ -158,20 +168,16 @@ const MOCK_SERVICES: Service[] = [
   { 
     id: '3', 
     name: 'Certificado SSL', 
-    host: 'monolith-v1.com', 
-    type: 'hosting', 
+    host: 'hospedamaringa.com.br', 
+    type: 'ssl', 
     status: 'active',
-    accessInfo: {
-      username: 'monolith_user',
-      password: '••••••••••••',
-      mainIp: '162.241.123.45',
-      cpanelUrl: 'https://monolith-v1.com:2083',
-      nameservers: ['ns1.monolith-dns.com', 'ns2.monolith-dns.com'],
-      specs: {
-        storage: 'N/A',
-        bandwidth: 'Ilimitado',
-        ram: 'N/A'
-      }
+    sslInfo: {
+      domain: 'hospedamaringa.com.br',
+      status: 'AutoSSL Domain Validated',
+      fqdns: ['hospedamaringa.com.br', 'www.hospedamaringa.com.br', 'mail.hospedamaringa.com.br'],
+      crt: '-----BEGIN CERTIFICATE-----\nMIIF... (dados do certificado) ...\n-----END CERTIFICATE-----',
+      key: '-----BEGIN PRIVATE KEY-----\nMIIE... (chave privada) ...\n-----END PRIVATE KEY-----',
+      cabundle: '-----BEGIN CERTIFICATE-----\nMIIF... (pacote de autoridades) ...\n-----END CERTIFICATE-----'
     }
   },
 ];
@@ -2067,160 +2073,233 @@ const ServiceManagePage = ({ serviceId, onBack }: { serviceId: string, onBack: (
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Credenciais de Acesso */}
-        <div className="lg:col-span-2 space-y-8">
+      {service.type === 'ssl' && service.sslInfo ? (
+        <div className="space-y-8">
           <div className="bg-surface-container-low rounded-2xl p-8 border border-outline-variant/10">
             <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
-              <Lock className="text-primary" size={24} />
-              Credenciais de Acesso
+              <ShieldCheck className="text-primary" size={24} />
+              Informações do Certificado SSL
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Usuário</label>
-                <div className="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl border border-outline-variant/5">
-                  <span className="font-mono font-bold text-primary">{service.accessInfo.username}</span>
-                  <button onClick={() => copyToClipboard(service.accessInfo.username)} className="text-on-surface-variant hover:text-primary transition-colors">
-                    <Copy size={18} />
-                  </button>
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Domínio</label>
+                <div className="flex items-center gap-3 p-4 bg-surface-container-lowest rounded-xl border border-outline-variant/5">
+                  <CheckCircle className="text-emerald-500" size={20} />
+                  <span className="font-mono font-bold text-primary">{service.sslInfo.domain}</span>
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Senha</label>
-                <div className="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl border border-outline-variant/5">
-                  <span className="font-mono font-bold text-primary">
-                    {showPassword ? 'm0n0l1th_P@ss_2024' : '••••••••••••'}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setShowPassword(!showPassword)} className="text-on-surface-variant hover:text-primary transition-colors">
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                    <button onClick={() => copyToClipboard('m0n0l1th_P@ss_2024')} className="text-on-surface-variant hover:text-primary transition-colors">
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Status do Certificado</label>
+                <div className="flex items-center p-4 bg-surface-container-lowest rounded-xl border border-outline-variant/5">
+                  <span className="font-bold text-on-surface">{service.sslInfo.status}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-2 mb-8">
+              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">FQDNs</label>
+              <div className="p-4 bg-surface-container-lowest rounded-xl border border-outline-variant/5 flex flex-wrap gap-2">
+                {service.sslInfo.fqdns.map(fqdn => (
+                  <span key={fqdn} className="px-3 py-1 bg-surface-container-low rounded-lg text-sm font-mono">{fqdn}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Certificado (CRT)</label>
+                  <button onClick={() => copyToClipboard(service.sslInfo!.crt)} className="flex items-center gap-2 text-xs font-bold text-primary hover:text-primary/80 transition-colors">
+                    <Copy size={14} /> Copiar CRT
+                  </button>
+                </div>
+                <div className="p-4 bg-surface-container-lowest rounded-xl border border-outline-variant/5 overflow-x-auto">
+                  <pre className="font-mono text-xs text-on-surface-variant whitespace-pre-wrap break-all">{service.sslInfo.crt}</pre>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Chave Privada (KEY)</label>
+                  <button onClick={() => copyToClipboard(service.sslInfo!.key)} className="flex items-center gap-2 text-xs font-bold text-primary hover:text-primary/80 transition-colors">
+                    <Copy size={14} /> Copiar KEY
+                  </button>
+                </div>
+                <div className="p-4 bg-surface-container-lowest rounded-xl border border-outline-variant/5 overflow-x-auto">
+                  <pre className="font-mono text-xs text-on-surface-variant whitespace-pre-wrap break-all">{service.sslInfo.key}</pre>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Pacote de Autoridades de Certificação (CABUNDLE)</label>
+                  <button onClick={() => copyToClipboard(service.sslInfo!.cabundle)} className="flex items-center gap-2 text-xs font-bold text-primary hover:text-primary/80 transition-colors">
+                    <Copy size={14} /> Copiar CABUNDLE
+                  </button>
+                </div>
+                <div className="p-4 bg-surface-container-lowest rounded-xl border border-outline-variant/5 overflow-x-auto">
+                  <pre className="font-mono text-xs text-on-surface-variant whitespace-pre-wrap break-all">{service.sslInfo.cabundle}</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : service.accessInfo ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Credenciais de Acesso */}
+          <div className="lg:col-span-2 space-y-8">
+            <div className="bg-surface-container-low rounded-2xl p-8 border border-outline-variant/10">
+              <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
+                <Lock className="text-primary" size={24} />
+                Credenciais de Acesso
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Usuário</label>
+                  <div className="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl border border-outline-variant/5">
+                    <span className="font-mono font-bold text-primary">{service.accessInfo.username}</span>
+                    <button onClick={() => copyToClipboard(service.accessInfo!.username)} className="text-on-surface-variant hover:text-primary transition-colors">
                       <Copy size={18} />
                     </button>
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Senha</label>
+                  <div className="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl border border-outline-variant/5">
+                    <span className="font-mono font-bold text-primary">
+                      {showPassword ? 'm0n0l1th_P@ss_2024' : '••••••••••••'}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setShowPassword(!showPassword)} className="text-on-surface-variant hover:text-primary transition-colors">
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                      <button onClick={() => copyToClipboard('m0n0l1th_P@ss_2024')} className="text-on-surface-variant hover:text-primary transition-colors">
+                        <Copy size={18} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Rede e DNS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="bg-surface-container-low rounded-2xl p-8 border border-outline-variant/10">
+                <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
+                  <Globe className="text-secondary" size={24} />
+                  Informações de Rede
+                </h3>
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center p-4 bg-surface-container-lowest rounded-xl">
+                    <div>
+                      <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Endereço IP Principal</p>
+                      <p className="font-mono font-bold text-primary">{service.accessInfo.mainIp}</p>
+                    </div>
+                    <button onClick={() => copyToClipboard(service.accessInfo!.mainIp)} className="text-on-surface-variant hover:text-primary">
+                      <Copy size={18} />
+                    </button>
+                  </div>
+                  {service.accessInfo.additionalIps && (
+                    <div className="p-4 bg-surface-container-lowest rounded-xl">
+                      <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-3">IPs Adicionais</p>
+                      <div className="space-y-2">
+                        {service.accessInfo.additionalIps.map(ip => (
+                          <div key={ip} className="flex justify-between items-center">
+                            <span className="font-mono text-sm">{ip}</span>
+                            <button onClick={() => copyToClipboard(ip)} className="text-on-surface-variant hover:text-primary">
+                              <Copy size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-surface-container-low rounded-2xl p-8 border border-outline-variant/10">
+                <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
+                  <Database className="text-primary" size={24} />
+                  Servidores de Nomes DNS
+                </h3>
+                <div className="space-y-4">
+                  {service.accessInfo.nameservers.map((ns, i) => (
+                    <div key={ns} className="flex justify-between items-center p-4 bg-surface-container-lowest rounded-xl">
+                      <div>
+                        <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">NS {i + 1}</p>
+                        <p className="font-mono text-sm font-bold">{ns}</p>
+                      </div>
+                      <button onClick={() => copyToClipboard(ns)} className="text-on-surface-variant hover:text-primary">
+                        <Copy size={18} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Rede e DNS */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-surface-container-low rounded-2xl p-8 border border-outline-variant/10">
+          {/* Sidebar: Painéis de Controle e Especificações */}
+          <div className="space-y-8">
+            <div className="bg-primary rounded-2xl p-8 text-on-primary shadow-lg shadow-primary/20">
               <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
-                <Globe className="text-secondary" size={24} />
-                Informações de Rede
+                <Terminal size={24} />
+                Painéis de Controle
               </h3>
-              <div className="space-y-6">
-                <div className="flex justify-between items-center p-4 bg-surface-container-lowest rounded-xl">
-                  <div>
-                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Endereço IP Principal</p>
-                    <p className="font-mono font-bold text-primary">{service.accessInfo.mainIp}</p>
-                  </div>
-                  <button onClick={() => copyToClipboard(service.accessInfo.mainIp)} className="text-on-surface-variant hover:text-primary">
-                    <Copy size={18} />
-                  </button>
-                </div>
-                {service.accessInfo.additionalIps && (
-                  <div className="p-4 bg-surface-container-lowest rounded-xl">
-                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-3">IPs Adicionais</p>
-                    <div className="space-y-2">
-                      {service.accessInfo.additionalIps.map(ip => (
-                        <div key={ip} className="flex justify-between items-center">
-                          <span className="font-mono text-sm">{ip}</span>
-                          <button onClick={() => copyToClipboard(ip)} className="text-on-surface-variant hover:text-primary">
-                            <Copy size={14} />
-                          </button>
-                        </div>
-                      ))}
+              <div className="space-y-4">
+                {service.accessInfo.cpanelUrl && (
+                  <a 
+                    href={service.accessInfo.cpanelUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center font-black text-xs">cP</div>
+                      <span className="font-bold">Login cPanel</span>
                     </div>
-                  </div>
+                    <ExternalLink size={18} className="opacity-50 group-hover:opacity-100 transition-opacity" />
+                  </a>
                 )}
+                {service.accessInfo.directAdminUrl && (
+                  <a 
+                    href={service.accessInfo.directAdminUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center font-black text-xs">DA</div>
+                      <span className="font-bold">DirectAdmin</span>
+                    </div>
+                    <ExternalLink size={18} className="opacity-50 group-hover:opacity-100 transition-opacity" />
+                  </a>
+                )}
+                <button className="w-full mt-4 py-3 bg-surface-container-lowest text-primary rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform">
+                  Acesso ao Webmail
+                </button>
               </div>
             </div>
 
             <div className="bg-surface-container-low rounded-2xl p-8 border border-outline-variant/10">
               <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
-                <Database className="text-primary" size={24} />
-                Servidores de Nomes DNS
+                <Info className="text-secondary" size={24} />
+                Especificações do Serviço
               </h3>
               <div className="space-y-4">
-                {service.accessInfo.nameservers.map((ns, i) => (
-                  <div key={ns} className="flex justify-between items-center p-4 bg-surface-container-lowest rounded-xl">
-                    <div>
-                      <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">NS {i + 1}</p>
-                      <p className="font-mono text-sm font-bold">{ns}</p>
-                    </div>
-                    <button onClick={() => copyToClipboard(ns)} className="text-on-surface-variant hover:text-primary">
-                      <Copy size={18} />
-                    </button>
+                {Object.entries(service.accessInfo.specs).map(([key, value]) => (
+                  <div key={key} className="flex justify-between items-center py-3 border-b border-outline-variant/10 last:border-0">
+                    <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                      {key === 'cpu' ? 'CPU' : key === 'ram' ? 'RAM' : key === 'storage' ? 'Armazenamento' : key === 'bandwidth' ? 'Largura de Banda' : key === 'os' ? 'SO' : key}
+                    </span>
+                    <span className="font-bold text-sm">{value}</span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
         </div>
-
-        {/* Sidebar: Painéis de Controle e Especificações */}
-        <div className="space-y-8">
-          <div className="bg-primary rounded-2xl p-8 text-on-primary shadow-lg shadow-primary/20">
-            <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
-              <Terminal size={24} />
-              Painéis de Controle
-            </h3>
-            <div className="space-y-4">
-              {service.accessInfo.cpanelUrl && (
-                <a 
-                  href={service.accessInfo.cpanelUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center font-black text-xs">cP</div>
-                    <span className="font-bold">Login cPanel</span>
-                  </div>
-                  <ExternalLink size={18} className="opacity-50 group-hover:opacity-100 transition-opacity" />
-                </a>
-              )}
-              {service.accessInfo.directAdminUrl && (
-                <a 
-                  href={service.accessInfo.directAdminUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center font-black text-xs">DA</div>
-                    <span className="font-bold">DirectAdmin</span>
-                  </div>
-                  <ExternalLink size={18} className="opacity-50 group-hover:opacity-100 transition-opacity" />
-                </a>
-              )}
-              <button className="w-full mt-4 py-3 bg-surface-container-lowest text-primary rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform">
-                Acesso ao Webmail
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-surface-container-low rounded-2xl p-8 border border-outline-variant/10">
-            <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
-              <Info className="text-secondary" size={24} />
-              Especificações do Serviço
-            </h3>
-            <div className="space-y-4">
-              {Object.entries(service.accessInfo.specs).map(([key, value]) => (
-                <div key={key} className="flex justify-between items-center py-3 border-b border-outline-variant/10 last:border-0">
-                  <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                    {key === 'cpu' ? 'CPU' : key === 'ram' ? 'RAM' : key === 'storage' ? 'Armazenamento' : key === 'bandwidth' ? 'Largura de Banda' : key === 'os' ? 'SO' : key}
-                  </span>
-                  <span className="font-bold text-sm">{value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      ) : null}
     </div>
   );
 };

@@ -152,6 +152,25 @@ const MOCK_SERVICES: Service[] = [
       }
     }
   },
+  { 
+    id: '3', 
+    name: 'Certificado SSL', 
+    host: 'monolith-v1.com', 
+    type: 'hosting', 
+    status: 'active',
+    accessInfo: {
+      username: 'monolith_user',
+      password: '••••••••••••',
+      mainIp: '162.241.123.45',
+      cpanelUrl: 'https://monolith-v1.com:2083',
+      nameservers: ['ns1.monolith-dns.com', 'ns2.monolith-dns.com'],
+      specs: {
+        storage: 'N/A',
+        bandwidth: 'Ilimitado',
+        ram: 'N/A'
+      }
+    }
+  },
 ];
 
 const MOCK_TICKETS: SupportTicket[] = [
@@ -255,7 +274,7 @@ const MOCK_PROJECTS: Project[] = [
 
 // --- Components ---
 
-const Navbar = ({ currentPage, setCurrentPage }: { currentPage: Page, setCurrentPage: (p: Page) => void }) => {
+const Navbar = ({ currentPage, setCurrentPage, onNotificationClick }: { currentPage: Page, setCurrentPage: (p: Page) => void, onNotificationClick?: (type: string) => void }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
@@ -345,7 +364,20 @@ const Navbar = ({ currentPage, setCurrentPage }: { currentPage: Page, setCurrent
                   </div>
                   <div className="divide-y divide-outline-variant/10">
                     {notifications.map((n) => (
-                      <div key={n.id} className="p-4 hover:bg-surface-container-low transition-colors cursor-pointer group">
+                      <div 
+                        key={n.id} 
+                        onClick={() => {
+                          if (onNotificationClick) {
+                            onNotificationClick(n.type);
+                          } else {
+                            if (n.type === 'suporte') setCurrentPage('support');
+                            if (n.type === 'faturamento') setCurrentPage('billing');
+                            if (n.type === 'status') setCurrentPage('activity');
+                          }
+                          setIsNotificationsOpen(false);
+                        }}
+                        className="p-4 hover:bg-surface-container-low transition-colors cursor-pointer group"
+                      >
                         <div className="flex justify-between items-start mb-1">
                           <span className="text-[10px] font-black uppercase tracking-widest text-primary">{n.title}</span>
                           <span className="text-[10px] text-on-surface-variant">{n.time}</span>
@@ -636,12 +668,14 @@ const ProductsPage = () => {
   );
 };
 
-const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewStatus, onTicketClick }: { 
+const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewStatus, onTicketClick, onViewProjects, onViewBilling }: { 
   onManageService: (id: string) => void, 
   onViewActivity: () => void,
   onOpenTicket: () => void,
   onViewStatus: () => void,
-  onTicketClick: (id: string) => void
+  onTicketClick: (id: string) => void,
+  onViewProjects: () => void,
+  onViewBilling: () => void
 }) => {
   const [cpu, setCpu] = useState(42);
   const [mem, setMem] = useState(85);
@@ -706,17 +740,17 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
           </div>
 
         {/* Active Services */}
-        <div className="bg-surface-container-lowest rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-6">
+        <div className="bg-surface-container-lowest rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow flex flex-col h-[420px]">
+          <div className="flex justify-between items-start mb-6 shrink-0">
             <div>
               <h3 className="font-bold text-xl mb-1">Serviços Ativos</h3>
-              <p className="text-on-surface-variant text-sm">2 Assinaturas ativas</p>
+              <p className="text-on-surface-variant text-sm">{MOCK_SERVICES.length} Assinaturas ativas</p>
             </div>
             <div className="">
               <Cloud className="text-[#035e75]" size={24} />
             </div>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-grow">
             {MOCK_SERVICES.map(service => (
               <div key={service.id} className="flex items-center justify-between p-4 bg-surface-container-low rounded-lg">
                 <div className="flex items-center gap-3">
@@ -738,21 +772,22 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
         </div>
 
         {/* Suporte e Faturas */}
-        <div className="bg-surface-container-lowest rounded-xl p-8 shadow-sm">
-          <div className="flex justify-between items-start mb-6">
+        <div className="bg-surface-container-lowest rounded-xl p-8 shadow-sm flex flex-col h-[420px]">
+          <div className="flex justify-between items-start mb-6 shrink-0">
             <div>
               <h3 className="font-bold text-xl mb-1">Suporte e Faturas</h3>
-              <p className="text-on-surface-variant text-sm">1 Fatura e 1 Ticket pendentes</p>
+              <p className="text-on-surface-variant text-sm">Faturas, Tickets e Projetos</p>
             </div>
             <div className="">
               <MessageSquare className="text-[#035e75]" size={24} />
             </div>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-grow">
             {/* 1 Fatura Pendente */}
             {MOCK_INVOICES.filter(i => i.status === 'Pendente').slice(0, 1).map(invoice => (
               <div 
                 key={invoice.id} 
+                onClick={onViewBilling}
                 className="flex items-center justify-between p-4 bg-surface-container-low rounded-lg hover:bg-surface-container-high transition-colors cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
@@ -795,6 +830,25 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
                 </span>
               </div>
             ))}
+
+            {/* Projeto em Desenvolvimento */}
+            <div 
+              onClick={onViewProjects}
+              className="flex items-center justify-between p-4 bg-surface-container-low rounded-lg hover:bg-surface-container-high transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="">
+                  <Layout className="text-[#035e75]" size={18} />
+                </div>
+                <div>
+                  <p className="font-bold text-sm group-hover:text-primary transition-colors">Projeto em Desenvolvimento</p>
+                  <p className="text-xs text-on-surface-variant">Status: Em Progresso • Clique para ver detalhes</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded border border-primary text-primary">
+                Projeto
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -821,6 +875,7 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
           </h4>
           <div className="space-y-6">
             {[
+              { title: 'Novo Login Detectado', sub: 'Hoje, 10:12 • Maringá, PR (IP: 187.12.34.56)', active: true },
               { title: 'Fatura #MON-4492 Paga', sub: '14 de Nov, 2024 • R$ 149,00', active: true },
               { title: 'Backup Concluído', sub: '13 de Nov, 2024 • monolith-v1.com', active: false },
               { title: 'Atualização do Sistema', sub: '10 de Nov, 2024 • VPS Kernel 6.1', active: true },
@@ -870,44 +925,134 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
 );
 };
 
-const BillingPage = () => (
-  <div className="space-y-12">
-    <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-      <div className="lg:col-span-8 space-y-6">
-        <span className="text-[10px] text-primary tracking-widest font-bold uppercase block mb-2">Assinatura Atual</span>
-        <div className="bg-surface-container-lowest rounded-xl p-8 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16"></div>
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div>
-              <h1 className="text-4xl font-extrabold text-on-surface tracking-tight font-headline">Enterprise Cloud Node</h1>
-              <p className="text-on-surface-variant mt-2 font-medium">Faturado anualmente • Próxima renovação: 12 de Out, 2024</p>
-            </div>
-            <div className="text-right">
-              <div className="text-3xl font-black text-primary font-headline">R$ 1.240<span className="text-lg font-medium text-on-surface-variant">/ano</span></div>
-              <span className="inline-flex items-center px-3 py-1 rounded-full border border-primary text-primary text-[10px] font-bold mt-2">
-                <span className="w-2 h-2 bg-primary rounded-full mr-2 animate-pulse"></span>
-                ATIVO
-              </span>
-            </div>
-          </div>
-          <div className="mt-8 flex flex-wrap gap-4">
-            <button className="bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-3 rounded-lg font-bold text-xs shadow-lg hover:opacity-90 transition-all active:scale-95">Upgrade de Plano</button>
-            <button className="bg-surface-container-highest text-on-surface px-6 py-3 rounded-lg font-bold text-xs hover:bg-surface-variant transition-all active:scale-95">Gerenciar Adicionais</button>
-          </div>
-        </div>
-      </div>
+const BillingPage = () => {
+  const [isCreditModalOpen, setIsCreditModalOpen] = useState(false);
+  const [creditAmount, setCreditAmount] = useState('35,00');
+  const [paymentMethod, setPaymentMethod] = useState('Pix');
 
-      <div className="lg:col-span-4 bg-error-container/40 rounded-xl p-8 backdrop-blur-sm relative border border-error/10">
-        <div className="flex justify-between items-start mb-6">
-          <AlertCircle className="text-error" size={32} />
-          <span className="text-error font-black font-headline text-2xl border-b-2 border-error pb-1">Pendente</span>
+  const paymentMethods = [
+    'Boleto Bancário',
+    'Pix',
+    'Cartão de Crédito',
+    'Transferência'
+  ];
+
+  return (
+    <div className="space-y-12">
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="lg:col-span-8 space-y-6">
+          <span className="text-[10px] text-primary tracking-widest font-bold uppercase block mb-2">Assinatura Atual</span>
+          <div className="bg-surface-container-lowest rounded-xl p-8 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16"></div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div>
+                <h1 className="text-4xl font-extrabold text-on-surface tracking-tight font-headline">Enterprise Cloud Node</h1>
+                <p className="text-on-surface-variant mt-2 font-medium">Faturado anualmente • Próxima renovação: 12 de Out, 2024</p>
+              </div>
+              <div className="text-right">
+                <div className="text-3xl font-black text-primary font-headline">R$ 1.240<span className="text-lg font-medium text-on-surface-variant">/ano</span></div>
+                <span className="inline-flex items-center px-3 py-1 rounded-full border border-primary text-primary text-[10px] font-bold mt-2">
+                  <span className="w-2 h-2 bg-primary rounded-full mr-2 animate-pulse"></span>
+                  ATIVO
+                </span>
+              </div>
+            </div>
+            <div className="mt-8 flex flex-wrap gap-4">
+              <button className="bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-3 rounded-lg font-bold text-xs shadow-lg hover:opacity-90 transition-all active:scale-95">Upgrade de Plano</button>
+              <button 
+                onClick={() => setIsCreditModalOpen(true)}
+                className="bg-surface-container-highest text-on-surface px-6 py-3 rounded-lg font-bold text-xs hover:bg-surface-variant transition-all active:scale-95"
+              >
+                Carregar Créditos
+              </button>
+            </div>
+          </div>
         </div>
-        <h3 className="text-xl font-bold text-on-error-container mb-2">Fatura em Aberto</h3>
-        <p className="text-on-error-container/80 text-sm mb-6 leading-relaxed">Fatura #MN-9042 para renovação de domínio está atrasada há 3 dias.</p>
-        <div className="text-2xl font-bold text-error mb-6">R$ 24,99</div>
-        <button className="w-full bg-error text-on-error py-3 rounded-lg font-bold hover:bg-error/90 transition-all active:scale-95">Pagar Agora</button>
-      </div>
-    </section>
+
+        <div className="lg:col-span-4 bg-error-container/40 rounded-xl p-8 backdrop-blur-sm relative border border-error/10">
+          <div className="flex justify-between items-start mb-6">
+            <AlertCircle className="text-error" size={32} />
+            <span className="text-error font-black font-headline text-2xl border-b-2 border-error pb-1">Pendente</span>
+          </div>
+          <h3 className="text-xl font-bold text-on-error-container mb-2">Fatura em Aberto</h3>
+          <p className="text-on-error-container/80 text-sm mb-6 leading-relaxed">Fatura #MN-9042 para renovação de domínio está atrasada há 3 dias.</p>
+          <div className="text-2xl font-bold text-error mb-6">R$ 24,99</div>
+          <button className="w-full bg-error text-on-error py-3 rounded-lg font-bold hover:bg-error/90 transition-all active:scale-95">Pagar Agora</button>
+        </div>
+      </section>
+
+      <AnimatePresence>
+        {isCreditModalOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsCreditModalOpen(false)}
+              className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-surface-container-lowest rounded-3xl shadow-2xl border border-outline-variant/10 overflow-hidden"
+            >
+              <div className="bg-primary p-8 text-on-primary">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-headline text-2xl font-bold">Carregar Créditos</h3>
+                  <button onClick={() => setIsCreditModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                    <X size={24} />
+                  </button>
+                </div>
+                <p className="text-on-primary/70 text-sm">Adicione saldo à sua conta Monolith</p>
+              </div>
+
+              <div className="p-8 space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Valor do Crédito (R$)</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-on-surface-variant">R$</span>
+                    <input 
+                      type="text" 
+                      value={creditAmount}
+                      onChange={(e) => setCreditAmount(e.target.value)}
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl pl-12 pr-4 py-4 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                      placeholder="0,00"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Método de Pagamento</label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {paymentMethods.map((method) => (
+                      <button
+                        key={method}
+                        onClick={() => setPaymentMethod(method)}
+                        className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                          paymentMethod === method 
+                            ? 'bg-primary/5 border-primary text-primary' 
+                            : 'bg-surface-container-low border-outline-variant/10 text-on-surface hover:border-primary/30'
+                        }`}
+                      >
+                        <span className="font-bold text-sm">{method}</span>
+                        {paymentMethod === method && <CheckCircle size={18} />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => setIsCreditModalOpen(false)}
+                  className="w-full bg-primary text-on-primary py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95"
+                >
+                  Aplicar Crédito
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     <section className="grid grid-cols-1 lg:grid-cols-2 gap-12">
       <div className="space-y-6">
@@ -990,14 +1135,18 @@ const BillingPage = () => (
       </div>
     </section>
   </div>
-);
+  );
+};
 
 const SupportPage = ({ onTicketClick }: { onTicketClick: (id: string) => void }) => {
   const [filter, setFilter] = useState<'Todos' | 'Abertos' | 'Fechados'>('Todos');
   const [search, setSearch] = useState('');
 
   const filteredTickets = MOCK_TICKETS.filter(ticket => {
-    const matchesFilter = filter === 'Todos' || ticket.status === filter || (filter === 'Abertos' && (ticket.status === 'Aberto' || ticket.status === 'Em Andamento'));
+    const matchesFilter = 
+      filter === 'Todos' || 
+      (filter === 'Abertos' && (ticket.status === 'Aberto' || ticket.status === 'Em Andamento')) ||
+      (filter === 'Fechados' && ticket.status === 'Fechado');
     const matchesSearch = ticket.title.toLowerCase().includes(search.toLowerCase()) || ticket.id.toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
   });
@@ -1174,8 +1323,8 @@ const TicketDetailPage = ({ ticketId, onBack }: { ticketId: string, onBack: () =
               <span>•</span>
               <span className="flex items-center gap-1"><History size={14} /> Última atualização {ticket.updatedAt}</span>
               <span>•</span>
-              <span className={`font-bold ${ticket.status === 'Open' ? 'text-primary' : ticket.status === 'In Progress' ? 'text-secondary' : 'text-on-surface-variant'}`}>
-                {ticket.status === 'Open' ? 'Aberto' : ticket.status === 'In Progress' ? 'Em Andamento' : 'Fechado'}
+              <span className={`font-bold ${ticket.status === 'Aberto' ? 'text-primary' : ticket.status === 'Em Andamento' ? 'text-secondary' : 'text-on-surface-variant'}`}>
+                {ticket.status}
               </span>
             </div>
           </div>
@@ -1315,9 +1464,13 @@ const StatusPage = () => (
   </div>
 );
 
-const ActivityLogPage = () => {
+const ActivityLogPage = ({ initialCategory = 'Toda Atividade' }: { initialCategory?: string }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('Toda Atividade');
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+
+  useEffect(() => {
+    setSelectedCategory(initialCategory);
+  }, [initialCategory]);
 
   const categories = ['Toda Atividade', 'Infraestrutura', 'Segurança', 'Faturamento', 'Conta'];
 
@@ -1431,7 +1584,7 @@ const ActivityLogPage = () => {
   );
 };
 
-const ProfilePage = () => {
+const ProfilePage = ({ onViewActivityHistory }: { onViewActivityHistory: () => void }) => {
   const [showCurrentPass, setShowCurrentPass] = useState(false);
   const [showNewPass, setShowNewPass] = useState(false);
   const [isGeneralDataExpanded, setIsGeneralDataExpanded] = useState(false);
@@ -1691,8 +1844,11 @@ const ProfilePage = () => {
                 </div>
               ))}
             </div>
-            <button className="w-full mt-6 py-3 text-[10px] font-bold uppercase tracking-widest text-primary hover:underline">
-              View All History
+            <button 
+              onClick={onViewActivityHistory}
+              className="w-full mt-6 py-3 text-[10px] font-bold uppercase tracking-widest text-primary hover:underline"
+            >
+              Visualizar Históricos
             </button>
           </section>
         </div>
@@ -2167,6 +2323,14 @@ export default function MonolithApp() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [activityCategory, setActivityCategory] = useState('Toda Atividade');
+
+  const handlePageChange = (page: Page) => {
+    if (page === 'activity') {
+      setActivityCategory('Toda Atividade');
+    }
+    setCurrentPage(page);
+  };
 
   const handleManageService = (id: string) => {
     setSelectedServiceId(id);
@@ -2178,9 +2342,24 @@ export default function MonolithApp() {
     setCurrentPage('ticket-detail');
   };
 
+  const handleNotificationClick = (type: string) => {
+    if (type === 'suporte') {
+      setCurrentPage('support');
+    } else if (type === 'faturamento') {
+      setCurrentPage('billing');
+    } else if (type === 'status') {
+      setActivityCategory('Infraestrutura');
+      setCurrentPage('activity');
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
+      <Navbar 
+        currentPage={currentPage} 
+        setCurrentPage={handlePageChange} 
+        onNotificationClick={handleNotificationClick}
+      />
       
       <main className="flex-grow pt-32 pb-24 px-6 md:px-10 lg:px-20 max-w-[1920px] mx-auto w-full">
         <AnimatePresence mode="wait">
@@ -2194,10 +2373,12 @@ export default function MonolithApp() {
             {currentPage === 'dashboard' && (
               <DashboardPage 
                 onManageService={handleManageService} 
-                onViewActivity={() => setCurrentPage('activity')} 
+                onViewActivity={() => handlePageChange('activity')} 
                 onOpenTicket={() => setCurrentPage('support')}
                 onViewStatus={() => setCurrentPage('status')}
                 onTicketClick={handleTicketClick}
+                onViewProjects={() => setCurrentPage('projects')}
+                onViewBilling={() => setCurrentPage('billing')}
               />
             )}
             {currentPage === 'products' && <ProductsPage />}
@@ -2207,9 +2388,16 @@ export default function MonolithApp() {
               <TicketDetailPage ticketId={selectedTicketId} onBack={() => setCurrentPage('support')} />
             )}
             {currentPage === 'status' && <StatusPage />}
-            {currentPage === 'activity' && <ActivityLogPage />}
+            {currentPage === 'activity' && <ActivityLogPage initialCategory={activityCategory} />}
             {currentPage === 'projects' && <ProjectsPage />}
-            {currentPage === 'profile' && <ProfilePage />}
+            {currentPage === 'profile' && (
+              <ProfilePage 
+                onViewActivityHistory={() => {
+                  setActivityCategory('Conta');
+                  setCurrentPage('activity');
+                }} 
+              />
+            )}
             {currentPage === 'terms' && <TermsOfServicePage onBack={() => setCurrentPage('dashboard')} />}
             {currentPage === 'privacy' && <PrivacyPolicyPage onBack={() => setCurrentPage('dashboard')} />}
             {currentPage === 'service-manage' && selectedServiceId && (

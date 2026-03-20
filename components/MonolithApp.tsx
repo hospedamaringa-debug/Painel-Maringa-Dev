@@ -2229,6 +2229,29 @@ const SupportWidget = () => {
   const widgetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Tawk.to Script Integration
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = 'https://embed.tawk.to/56a7b6410f45914704429953/1ephijqta';
+    script.charset = 'UTF-8';
+    script.setAttribute('crossorigin', '*');
+    const s0 = document.getElementsByTagName("script")[0];
+    if (s0 && s0.parentNode) {
+      s0.parentNode.insertBefore(script, s0);
+    }
+
+    // Initialize Tawk_API if not exists
+    (window as any).Tawk_API = (window as any).Tawk_API || {};
+    (window as any).Tawk_LoadStart = new Date();
+
+    return () => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (widgetRef.current && !widgetRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -2243,26 +2266,42 @@ const SupportWidget = () => {
   const supportChannels = [
     { 
       name: 'WhatsApp', 
-      icon: <Phone size={20} />, 
+      icon: <Phone size={24} className="text-[#25D366]" />, 
       description: 'Atendimento rápido via WhatsApp',
-      color: 'bg-[#25D366]',
       action: () => window.open('https://wa.me/5544999999999', '_blank')
     },
     { 
       name: 'Chat ao Vivo', 
-      icon: <MessageCircle size={20} />, 
+      icon: <MessageCircle size={24} className="text-primary" />, 
       description: 'Fale com um de nossos especialistas',
-      color: 'bg-primary',
-      action: () => console.log('Abrir Chat')
+      action: () => {
+        if ((window as any).Tawk_API && (window as any).Tawk_API.toggle) {
+          (window as any).Tawk_API.toggle();
+          setIsOpen(false);
+        }
+      }
     },
     { 
       name: 'Assistente IA', 
-      icon: <Bot size={20} />, 
+      icon: <Bot size={24} className="text-secondary" />, 
       description: 'Suporte inteligente 24/7',
-      color: 'bg-secondary',
       action: () => console.log('Abrir IA')
     }
   ];
+
+  const getStatus = () => {
+    const now = new Date();
+    // Brasilia is UTC-3
+    const utcHours = now.getUTCHours();
+    const brasiliaHours = (utcHours - 3 + 24) % 24;
+    const isOnline = brasiliaHours >= 8 && brasiliaHours < 18;
+    return {
+      isOnline,
+      text: isOnline ? 'Suporte Online agora' : 'Estamos fechados agora'
+    };
+  };
+
+  const status = getStatus();
 
   return (
     <div className="fixed bottom-8 right-8 z-[100]" ref={widgetRef}>
@@ -2286,7 +2325,7 @@ const SupportWidget = () => {
                   onClick={channel.action}
                   className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-surface-container-low transition-all group border border-transparent hover:border-outline-variant/10"
                 >
-                  <div className={`${channel.color} text-white p-3 rounded-xl shadow-lg group-hover:scale-110 transition-transform`}>
+                  <div className="group-hover:scale-110 transition-transform">
                     {channel.icon}
                   </div>
                   <div className="text-left">
@@ -2299,8 +2338,8 @@ const SupportWidget = () => {
             
             <div className="p-4 bg-surface-container-low border-t border-outline-variant/10">
               <div className="flex items-center gap-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest justify-center">
-                <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-                Suporte Online agora
+                <span className={`w-2 h-2 ${status.isOnline ? 'bg-primary animate-pulse' : 'bg-outline-variant'} rounded-full`}></span>
+                {status.text}
               </div>
             </div>
           </motion.div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   UserCircle, 
   AlertCircle, 
@@ -49,7 +49,11 @@ import {
   EyeOff,
   Zap,
   Bell,
-  BellDot
+  BellDot,
+  MessageCircle,
+  Bot,
+  Phone,
+  Send
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -254,6 +258,25 @@ const MOCK_PROJECTS: Project[] = [
 const Navbar = ({ currentPage, setCurrentPage }: { currentPage: Page, setCurrentPage: (p: Page) => void }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
+      }
+    }
+
+    if (isNotificationsOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isNotificationsOpen]);
 
   const navItems: { label: string, value: Page }[] = [
     { label: 'Início', value: 'dashboard' },
@@ -299,7 +322,7 @@ const Navbar = ({ currentPage, setCurrentPage }: { currentPage: Page, setCurrent
         </div>
 
         <div className="flex items-center space-x-4">
-          <div className="relative">
+          <div className="relative" ref={notificationsRef}>
             <button 
               onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
               className="text-on-surface-variant hover:text-primary transition-colors p-2 relative"
@@ -653,7 +676,7 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
             <div className="absolute top-0 right-0 p-8">
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 bg-primary rounded-full pulse-ring"></span>
-                <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Desempenho em Tempo Real</span>
+                <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Load Averages</span>
               </div>
             </div>
             <h3 className="font-headline text-2xl font-bold mb-8">Servidor</h3>
@@ -689,15 +712,15 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
               <h3 className="font-bold text-xl mb-1">Serviços Ativos</h3>
               <p className="text-on-surface-variant text-sm">2 Assinaturas ativas</p>
             </div>
-            <div className="bg-primary-fixed p-3 rounded-lg">
-              <Cloud className="text-primary" size={24} />
+            <div className="">
+              <Cloud className="text-[#035e75]" size={24} />
             </div>
           </div>
           <div className="space-y-4">
             {MOCK_SERVICES.map(service => (
               <div key={service.id} className="flex items-center justify-between p-4 bg-surface-container-low rounded-lg">
                 <div className="flex items-center gap-3">
-                  {service.type === 'hosting' ? <Server className="text-secondary" size={20} /> : <Cpu className="text-primary" size={20} />}
+                  {service.type === 'hosting' ? <Server className="text-[#035e75]" size={20} /> : <Cpu className="text-[#035e75]" size={20} />}
                   <div>
                     <p className="font-bold text-sm">{service.name}</p>
                     <p className="text-xs text-on-surface-variant">{service.host}</p>
@@ -721,8 +744,8 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
               <h3 className="font-bold text-xl mb-1">Suporte e Faturas</h3>
               <p className="text-on-surface-variant text-sm">1 Fatura e 1 Ticket pendentes</p>
             </div>
-            <div className="bg-secondary-fixed p-3 rounded-lg">
-              <MessageSquare className="text-secondary" size={24} />
+            <div className="">
+              <MessageSquare className="text-[#035e75]" size={24} />
             </div>
           </div>
           <div className="space-y-4">
@@ -733,8 +756,8 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
                 className="flex items-center justify-between p-4 bg-surface-container-low rounded-lg hover:bg-surface-container-high transition-colors cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="bg-error-container/20 p-2 rounded-md">
-                    <CreditCard className="text-error" size={18} />
+                  <div className="">
+                    <CreditCard className="text-[#035e75]" size={18} />
                   </div>
                   <div>
                     <p className="font-bold text-sm group-hover:text-primary transition-colors">Fatura Pendente {invoice.id}</p>
@@ -755,8 +778,8 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
                 className="flex items-center justify-between p-4 bg-surface-container-low rounded-lg hover:bg-surface-container-high transition-colors cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="bg-primary-container/20 p-2 rounded-md">
-                    <MessageSquare className="text-primary" size={18} />
+                  <div className="">
+                    <MessageSquare className="text-[#035e75]" size={18} />
                   </div>
                   <div>
                     <p className="font-bold text-sm group-hover:text-primary transition-colors">{ticket.title}</p>
@@ -1006,7 +1029,7 @@ const SupportPage = ({ onTicketClick }: { onTicketClick: (id: string) => void })
             <div className="p-3 bg-primary/10 rounded-full text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
               <Zap size={24} />
             </div>
-            <span className="text-xs uppercase tracking-widest">Via Rápida</span>
+            <span className="text-xs uppercase tracking-widest">Fast-Track</span>
           </button>
           <button className="flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-primary to-primary-container text-on-primary p-6 rounded-xl font-bold active:scale-95 transition-all shadow-lg hover:shadow-primary/20 group">
             <div className="p-3 bg-white/20 rounded-full text-white">
@@ -2045,6 +2068,101 @@ const ServiceManagePage = ({ serviceId, onBack }: { serviceId: string, onBack: (
 
 // --- Main App ---
 
+const SupportWidget = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const widgetRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (widgetRef.current && !widgetRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  const supportChannels = [
+    { 
+      name: 'WhatsApp', 
+      icon: <Phone size={20} />, 
+      description: 'Atendimento rápido via WhatsApp',
+      color: 'bg-[#25D366]',
+      action: () => window.open('https://wa.me/5544999999999', '_blank')
+    },
+    { 
+      name: 'Chat ao Vivo', 
+      icon: <MessageCircle size={20} />, 
+      description: 'Fale com um de nossos especialistas',
+      color: 'bg-primary',
+      action: () => console.log('Abrir Chat')
+    },
+    { 
+      name: 'Assistente IA', 
+      icon: <Bot size={20} />, 
+      description: 'Suporte inteligente 24/7',
+      color: 'bg-secondary',
+      action: () => console.log('Abrir IA')
+    }
+  ];
+
+  return (
+    <div className="fixed bottom-8 right-8 z-[100]" ref={widgetRef}>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 20, transformOrigin: 'bottom right' }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            className="absolute bottom-20 right-0 w-80 bg-surface-container-lowest rounded-3xl shadow-2xl border border-outline-variant/10 overflow-hidden"
+          >
+            <div className="bg-primary p-6 text-on-primary">
+              <h3 className="font-headline text-xl font-bold mb-1">Central de Ajuda</h3>
+              <p className="text-on-primary/70 text-xs">Como podemos ajudar você hoje?</p>
+            </div>
+            
+            <div className="p-4 space-y-3">
+              {supportChannels.map((channel) => (
+                <button
+                  key={channel.name}
+                  onClick={channel.action}
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-surface-container-low transition-all group border border-transparent hover:border-outline-variant/10"
+                >
+                  <div className={`${channel.color} text-white p-3 rounded-xl shadow-lg group-hover:scale-110 transition-transform`}>
+                    {channel.icon}
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-sm text-on-surface">{channel.name}</p>
+                    <p className="text-[10px] text-on-surface-variant font-medium">{channel.description}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+            
+            <div className="p-4 bg-surface-container-low border-t border-outline-variant/10">
+              <div className="flex items-center gap-2 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest justify-center">
+                <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+                Suporte Online agora
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 hover:scale-110 active:scale-95 ${
+          isOpen ? 'bg-surface-container-lowest text-primary rotate-90' : 'bg-primary text-on-primary'
+        }`}
+      >
+        {isOpen ? <X size={32} /> : <MessageSquare size={32} />}
+      </button>
+    </div>
+  );
+};
+
 export default function MonolithApp() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
@@ -2124,6 +2242,8 @@ export default function MonolithApp() {
         onTermsClick={() => setCurrentPage('terms')}
         onPrivacyClick={() => setCurrentPage('privacy')}
       />
+
+      <SupportWidget />
     </div>
   );
 }

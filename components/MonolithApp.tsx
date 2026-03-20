@@ -764,7 +764,7 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
                     <p className="text-xs text-on-surface-variant">Vencimento: {invoice.date} • R$ {invoice.amount.toLocaleString()}</p>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-error-container text-on-error-container">
+                <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded border border-error text-error">
                   Pendente
                 </span>
               </div>
@@ -786,10 +786,10 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
                     <p className="text-xs text-on-surface-variant">{ticket.id} • {ticket.updatedAt}</p>
                   </div>
                 </div>
-                <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded ${
-                  ticket.priority === 'Alta' ? 'bg-error-container text-on-error-container' : 
-                  ticket.priority === 'Média' ? 'bg-secondary-container text-on-secondary-container' : 
-                  'bg-outline-variant/30 text-on-surface-variant'
+                <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded border ${
+                  ticket.priority === 'Alta' ? 'border-error text-error' : 
+                  ticket.priority === 'Média' ? 'border-secondary text-secondary' : 
+                  'border-outline-variant text-on-surface-variant'
                 }`}>
                   {ticket.priority === 'Alta' ? 'Alta' : ticket.priority === 'Média' ? 'Média' : 'Baixa'}
                 </span>
@@ -884,7 +884,7 @@ const BillingPage = () => (
             </div>
             <div className="text-right">
               <div className="text-3xl font-black text-primary font-headline">R$ 1.240<span className="text-lg font-medium text-on-surface-variant">/ano</span></div>
-              <span className="inline-flex items-center px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold mt-2">
+              <span className="inline-flex items-center px-3 py-1 rounded-full border border-primary text-primary text-[10px] font-bold mt-2">
                 <span className="w-2 h-2 bg-primary rounded-full mr-2 animate-pulse"></span>
                 ATIVO
               </span>
@@ -900,7 +900,7 @@ const BillingPage = () => (
       <div className="lg:col-span-4 bg-error-container/40 rounded-xl p-8 backdrop-blur-sm relative border border-error/10">
         <div className="flex justify-between items-start mb-6">
           <AlertCircle className="text-error" size={32} />
-          <span className="text-error font-black font-headline text-2xl">Pendente</span>
+          <span className="text-error font-black font-headline text-2xl border-b-2 border-error pb-1">Pendente</span>
         </div>
         <h3 className="text-xl font-bold text-on-error-container mb-2">Fatura em Aberto</h3>
         <p className="text-on-error-container/80 text-sm mb-6 leading-relaxed">Fatura #MN-9042 para renovação de domínio está atrasada há 3 dias.</p>
@@ -1102,10 +1102,10 @@ const SupportPage = ({ onTicketClick }: { onTicketClick: (id: string) => void })
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <h3 className="text-xl font-bold text-on-surface group-hover:text-primary transition-colors">{ticket.title}</h3>
-                  <span className={`px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                    ticket.priority === 'Alta' ? 'bg-error-container text-on-error-container' : 
-                    ticket.priority === 'Média' ? 'bg-secondary-container text-on-secondary-container' : 
-                    'bg-outline-variant/30 text-on-surface-variant'
+                  <span className={`px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                    ticket.priority === 'Alta' ? 'border-error text-error' : 
+                    ticket.priority === 'Média' ? 'border-secondary text-secondary' : 
+                    'border-outline-variant text-on-surface-variant'
                   }`}>
                     Prioridade {ticket.priority}
                   </span>
@@ -1161,10 +1161,10 @@ const TicketDetailPage = ({ ticketId, onBack }: { ticketId: string, onBack: () =
           <div>
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-3xl font-black font-headline text-on-surface">{ticket.title}</h1>
-              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                ticket.priority === 'Alta' ? 'bg-error-container text-on-error-container' : 
-                ticket.priority === 'Média' ? 'bg-secondary-container text-on-secondary-container' : 
-                'bg-outline-variant/30 text-on-surface-variant'
+              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                ticket.priority === 'Alta' ? 'border-error text-error' : 
+                ticket.priority === 'Média' ? 'border-secondary text-secondary' : 
+                'border-outline-variant text-on-surface-variant'
               }`}>
                 Prioridade {ticket.priority}
               </span>
@@ -1252,10 +1252,10 @@ const StatusPage = () => (
         <div key={i} className="bg-surface-container-lowest p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start mb-6">
             <h3 className="font-bold text-lg">{service.name}</h3>
-            <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest ${
-              service.status === 'operational' ? 'bg-primary/10 text-primary' : 
-              service.status === 'degraded' ? 'bg-secondary-container text-on-secondary-container' : 
-              'bg-error-container text-on-error-container'
+            <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest border ${
+              service.status === 'operational' ? 'border-primary text-primary' : 
+              service.status === 'degraded' ? 'border-secondary text-secondary' : 
+              'border-error text-error'
             }`}>
               {service.status === 'operational' ? 'Operacional' : service.status === 'degraded' ? 'Degradado' : 'Interrupção'}
             </span>
@@ -1793,10 +1793,10 @@ const ProjectsPage = () => (
                       {task.title}
                     </h4>
                     <div className="flex flex-wrap items-center gap-4 text-xs">
-                      <span className={`px-2 py-0.5 rounded uppercase tracking-widest font-black text-[9px] ${
-                        task.priority === 'high' ? 'bg-error-container text-on-error-container' : 
-                        task.priority === 'medium' ? 'bg-secondary-container text-on-secondary-container' : 
-                        'bg-surface-container-highest text-on-surface-variant'
+                      <span className={`px-2 py-0.5 rounded uppercase tracking-widest font-black text-[9px] border ${
+                        task.priority === 'high' ? 'border-error text-error' : 
+                        task.priority === 'medium' ? 'border-secondary text-secondary' : 
+                        'border-outline-variant text-on-surface-variant'
                       }`}>
                         {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
                       </span>
@@ -1810,10 +1810,10 @@ const ProjectsPage = () => (
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                    task.status === 'done' ? 'bg-primary/10 text-primary' : 
-                    task.status === 'in-progress' ? 'bg-secondary-container text-on-secondary-container' : 
-                    'bg-surface-container-highest text-on-surface-variant'
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
+                    task.status === 'done' ? 'border-primary text-primary' : 
+                    task.status === 'in-progress' ? 'border-secondary text-secondary' : 
+                    'border-outline-variant text-on-surface-variant'
                   }`}>
                     {task.status === 'done' ? 'Concluído' : task.status === 'in-progress' ? 'Em Andamento' : task.status === 'review' ? 'Revisão' : 'A Fazer'}
                   </span>
@@ -1899,8 +1899,8 @@ const ServiceManagePage = ({ serviceId, onBack }: { serviceId: string, onBack: (
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${
-            service.status === 'active' ? 'bg-primary/10 text-primary' : 'bg-error-container text-on-error-container'
+          <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border ${
+            service.status === 'active' ? 'border-primary text-primary' : 'border-error text-error'
           }`}>
             {service.status === 'active' ? 'Ativo' : service.status === 'suspended' ? 'Suspenso' : 'Pendente'}
           </span>

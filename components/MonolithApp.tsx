@@ -167,7 +167,9 @@ interface SupportTicket {
 // --- Mock Data ---
 
 const MOCK_INVOICES: Invoice[] = [
-  { id: '#9042', date: '17 de Mar, 2024', amount: 10.00, status: 'Completo', transactionId: '03NOBCIPYYW6VZ26' },
+  { id: '#9042', date: '17 de Mar, 2024', amount: 5.00, status: 'Completo', transactionId: '03NOBCIPYYW6VZ26' },
+  { id: '#9043', date: '18 de Mar, 2024', amount: 5.00, status: 'Pendente' },
+  { id: '#9044', date: '19 de Mar, 2024', amount: 5.00, status: 'Pendente' },
 ];
 
 const MOCK_SERVICES: Service[] = [

@@ -101,6 +101,7 @@ interface SupportTicket {
 // --- Mock Data ---
 
 const MOCK_INVOICES: Invoice[] = [
+  { id: '#MN-9042', date: 'Mar 17, 2024', amount: 149.00, status: 'Pending' },
   { id: '#MN-8932', date: 'Sep 12, 2023', amount: 1240.00, status: 'Paid' },
   { id: '#MN-8841', date: 'Aug 12, 2023', amount: 45.00, status: 'Paid' },
   { id: '#MN-8720', date: 'Jul 12, 2023', amount: 12.50, status: 'Paid' },
@@ -713,26 +714,50 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
           </div>
         </div>
 
-        {/* Suporte Recentes */}
+        {/* Suporte e Faturas */}
         <div className="bg-surface-container-lowest rounded-xl p-8 shadow-sm">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h3 className="font-bold text-xl mb-1">Suporte Recentes</h3>
-              <p className="text-on-surface-variant text-sm">{MOCK_TICKETS.filter(t => t.status !== 'Closed').length} Tickets ativos</p>
+              <h3 className="font-bold text-xl mb-1">Suporte e Faturas</h3>
+              <p className="text-on-surface-variant text-sm">1 Fatura e 1 Ticket pendentes</p>
             </div>
             <div className="bg-secondary-fixed p-3 rounded-lg">
               <MessageSquare className="text-secondary" size={24} />
             </div>
           </div>
           <div className="space-y-4">
-            {MOCK_TICKETS.filter(t => t.status !== 'Closed').map(ticket => (
+            {/* 1 Fatura Pendente */}
+            {MOCK_INVOICES.filter(i => i.status === 'Pending').slice(0, 1).map(invoice => (
+              <div 
+                key={invoice.id} 
+                className="flex items-center justify-between p-4 bg-surface-container-low rounded-lg hover:bg-surface-container-high transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="bg-error-container/20 p-2 rounded-md">
+                    <CreditCard className="text-error" size={18} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm group-hover:text-primary transition-colors">Fatura Pendente {invoice.id}</p>
+                    <p className="text-xs text-on-surface-variant">Vencimento: {invoice.date} • R$ {invoice.amount.toLocaleString()}</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-error-container text-on-error-container">
+                  Pending
+                </span>
+              </div>
+            ))}
+
+            {/* 1 Ticket Aberto */}
+            {MOCK_TICKETS.filter(t => t.status === 'Open').slice(0, 1).map(ticket => (
               <div 
                 key={ticket.id} 
                 onClick={() => onTicketClick(ticket.id)}
                 className="flex items-center justify-between p-4 bg-surface-container-low rounded-lg hover:bg-surface-container-high transition-colors cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${ticket.status === 'Open' ? 'bg-primary' : 'bg-secondary'}`} />
+                  <div className="bg-primary-container/20 p-2 rounded-md">
+                    <MessageSquare className="text-primary" size={18} />
+                  </div>
                   <div>
                     <p className="font-bold text-sm group-hover:text-primary transition-colors">{ticket.title}</p>
                     <p className="text-xs text-on-surface-variant">{ticket.id} • {ticket.updatedAt}</p>
@@ -747,9 +772,6 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
                 </span>
               </div>
             ))}
-            {MOCK_TICKETS.filter(t => t.status !== 'Closed').length === 0 && (
-              <p className="text-center py-4 text-on-surface-variant text-sm italic">Nenhum ticket ativo no momento.</p>
-            )}
           </div>
         </div>
       </div>

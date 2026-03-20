@@ -53,12 +53,42 @@ import {
   MessageCircle,
   Bot,
   Phone,
-  Send
+  Send,
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI } from '@google/genai';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { AI_GREETING, AI_SYSTEM_INSTRUCTION } from '../lib/ai-config';
+
+// --- Helpers ---
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+};
+
+const formatNumberBR = (value: number) => {
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+};
+
+const parseCurrency = (value: string) => {
+  // Remove R$ e espaços
+  const cleanValue = value.replace('R$', '').replace(/\s/g, '');
+  
+  // Se contiver vírgula, assume que é o separador decimal brasileiro
+  if (cleanValue.includes(',')) {
+    // Remove pontos de milhar e troca vírgula por ponto
+    return parseFloat(cleanValue.replace(/\./g, '').replace(',', '.')) || 0;
+  }
+  // Se não tiver vírgula mas tiver ponto, assume que o ponto é o decimal (padrão internacional)
+  return parseFloat(cleanValue) || 0;
+};
 
 // --- Types ---
 
@@ -97,6 +127,22 @@ interface SSLInfo {
   cabundle: string;
 }
 
+interface UserProfile {
+  name: string;
+  email: string;
+  cpf: string;
+  cnpj: string;
+  phone: string;
+  address: string;
+  neighborhood: string;
+  company: string;
+  city: string;
+  country: string;
+  zipCode: string;
+  domain: string;
+  birthDate: string;
+}
+
 interface Service {
   id: string;
   name: string;
@@ -120,7 +166,7 @@ interface SupportTicket {
 // --- Mock Data ---
 
 const MOCK_INVOICES: Invoice[] = [
-  { id: '#MN-9042', date: '17 de Mar, 2024', amount: 149.00, status: 'Pendente' },
+  { id: '#MN-9042', date: '17 de Mar, 2024', amount: 10.00, status: 'Pendente' },
   { id: '#MN-8932', date: '12 de Set, 2023', amount: 1240.00, status: 'Pago' },
   { id: '#MN-8841', date: '12 de Ago, 2023', amount: 45.00, status: 'Pago' },
   { id: '#MN-8720', date: '12 de Jul, 2023', amount: 12.50, status: 'Pago' },
@@ -333,7 +379,7 @@ const Navbar = ({ currentPage, setCurrentPage, onNotificationClick }: { currentP
 
   return (
     <nav className="fixed top-0 z-50 w-full bg-surface shadow-[0_20px_40px_rgba(20,27,44,0.06)]">
-      <div className="flex justify-between items-center w-full px-6 md:px-10 h-20 max-w-[1920px] mx-auto">
+      <div className="flex justify-between items-center w-full px-6 md:px-10 h-20 max-w-[1600px] mx-auto">
         <div 
           className="text-2xl font-black tracking-tighter text-primary font-brand cursor-pointer"
           onClick={() => setCurrentPage('dashboard')}
@@ -460,7 +506,7 @@ const Navbar = ({ currentPage, setCurrentPage, onNotificationClick }: { currentP
 
 const Footer = ({ onStatusClick, onTermsClick, onPrivacyClick }: { onStatusClick: () => void, onTermsClick: () => void, onPrivacyClick: () => void }) => (
   <footer className="bg-surface-container-low py-12 border-t border-outline-variant/10">
-    <div className="flex flex-col md:flex-row justify-between items-center px-6 md:px-10 w-full max-w-[1920px] mx-auto gap-8">
+    <div className="flex flex-col md:flex-row justify-between items-center px-6 md:px-10 w-full max-w-[1600px] mx-auto gap-8">
       <div className="text-lg font-bold text-primary font-brand">HospedaMaringá</div>
       <div className="flex flex-wrap justify-center gap-6 md:gap-8">
         {['Termos de Serviço', 'Política de Privacidade', 'Página de Status', 'Mapa da Rede'].map((item) => (
@@ -893,7 +939,7 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
           <div className="space-y-6">
             {[
               { title: 'Novo Login Detectado', sub: 'Hoje, 10:12 • Maringá, PR (IP: 187.12.34.56)', active: true },
-              { title: 'Fatura #MON-4492 Paga', sub: '14 de Nov, 2024 • R$ 149,00', active: true },
+              { title: 'Fatura #MON-4492 Paga', sub: '14 de Nov, 2024 • R$ 10,00', active: true },
               { title: 'Backup Concluído', sub: '13 de Nov, 2024 • monolith-v1.com', active: false },
               { title: 'Atualização do Sistema', sub: '10 de Nov, 2024 • VPS Kernel 6.1', active: true },
             ].map((activity, i) => (
@@ -942,9 +988,9 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
 );
 };
 
-const BillingPage = () => {
+const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: UserProfile, invoices: Invoice[], setInvoices: (invoices: Invoice[]) => void }) => {
   const [isCreditModalOpen, setIsCreditModalOpen] = useState(false);
-  const [creditAmount, setCreditAmount] = useState('35,00');
+  const [creditAmount, setCreditAmount] = useState('10,00');
   const [paymentMethod, setPaymentMethod] = useState('Pix');
   
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -952,6 +998,88 @@ const BillingPage = () => {
   const [checkoutMethod, setCheckoutMethod] = useState<'pix' | 'boleto' | 'nupay'>('pix');
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentResult, setPaymentResult] = useState<any>(null);
+
+  // Novos estados para Métodos de Pagamento
+  const [isAddCardModalOpen, setIsAddCardModalOpen] = useState(false);
+  const [customPaymentMethods, setCustomPaymentMethods] = useState([
+    { id: 'sys-1', icon: <QrCode size={20} />, title: 'Pix (Sistema)', sub: 'Pagamento Instantâneo', type: 'system' },
+    { id: 'sys-2', icon: <FileText size={20} />, title: 'Boleto (Sistema)', sub: 'Compensação em até 3 dias', type: 'system' },
+  ]);
+  
+  const [newCard, setNewCard] = useState({
+    name: '',
+    number: '',
+    expiry: '',
+    cvv: ''
+  });
+
+  const handleAddCard = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCard.name || !newCard.number || !newCard.expiry || !newCard.cvv) return;
+
+    const last4 = newCard.number.replace(/\s/g, '').slice(-4);
+    const brand = newCard.number.startsWith('4') ? 'Visa' : 'Mastercard';
+
+    const newMethod = {
+      id: `custom-${Date.now()}`,
+      icon: <CreditCard size={20} />,
+      title: `•••• •••• •••• ${last4}`,
+      sub: `${brand} • Expira em ${newCard.expiry}`,
+      type: 'custom'
+    };
+
+    setCustomPaymentMethods([...customPaymentMethods, newMethod]);
+    setIsAddCardModalOpen(false);
+    setNewCard({ name: '', number: '', expiry: '', cvv: '' });
+  };
+
+  const handleDeleteMethod = (id: string) => {
+    setCustomPaymentMethods(customPaymentMethods.filter(m => m.id !== id));
+  };
+
+  const handleApplyCredit = () => {
+    const amount = parseCurrency(creditAmount);
+    if (amount <= 0) return;
+    
+    // Formata de volta para o padrão brasileiro para exibir no modal
+    setCreditAmount(formatNumberBR(amount));
+    
+    // Gera uma fatura temporária para pagamento do crédito
+    handlePayInvoice({
+      id: `#CR-${Math.floor(Math.random() * 9000) + 1000}`,
+      date: 'Hoje',
+      amount: amount,
+      status: 'Pendente'
+    });
+    
+    setIsCreditModalOpen(false);
+  };
+
+  useEffect(() => {
+    const pollPaymentStatus = async () => {
+      const pendingInvoices = invoices.filter(inv => inv.status === 'Pendente');
+      if (pendingInvoices.length === 0) return;
+
+      for (const invoice of pendingInvoices) {
+        try {
+          const invoiceId = invoice.id.replace('#', '');
+          const response = await fetch(`/api/payments/paghiper/webhook?invoiceId=${invoiceId}`);
+          const data = await response.json();
+          
+          if (data.paid) {
+            setInvoices(invoices.map(inv => 
+              inv.id === invoice.id ? { ...inv, status: 'Pago' } : inv
+            ));
+          }
+        } catch (error) {
+          console.error('Erro ao verificar status do pagamento:', error);
+        }
+      }
+    };
+
+    const interval = setInterval(pollPaymentStatus, 5000);
+    return () => clearInterval(interval);
+  }, [invoices, setInvoices]);
 
   const paymentMethods = [
     'Boleto Bancário',
@@ -983,7 +1111,10 @@ const BillingPage = () => {
         body: JSON.stringify({
           invoiceId: selectedInvoice.id.replace('#', ''),
           amount: selectedInvoice.amount,
-          description: `Pagamento Fatura ${selectedInvoice.id}`
+          description: `Pagamento Fatura ${selectedInvoice.id}`,
+          payerName: userProfile.name,
+          payerEmail: userProfile.email,
+          payerCpf: userProfile.cpf || userProfile.cnpj
         })
       });
 
@@ -991,28 +1122,37 @@ const BillingPage = () => {
       
       if (checkoutMethod === 'pix' && data.pix_create_request) {
         if (data.pix_create_request.result === 'reject') {
-          setPaymentResult({ error: data.pix_create_request.response_message });
+          setPaymentResult({ error: data.pix_create_request.response_message || 'Erro desconhecido ao gerar PIX' });
         } else {
+          // PagHiper retorna pix_code como um objeto contendo qrcode_image_url e emv (código copia e cola)
+          const pixInfo = data.pix_create_request.pix_code;
           setPaymentResult({ 
-            pix_code: data.pix_create_request.pix_code, 
-            qrcode_image_url: data.pix_create_request.qrcode_image_url 
+            pix_code: pixInfo.emv || '', 
+            qrcode_image_url: pixInfo.qrcode_image_url || '' 
           });
         }
       } else if (checkoutMethod === 'boleto' && data.create_request) {
         if (data.create_request.result === 'reject') {
-          setPaymentResult({ error: data.create_request.response_message });
+          setPaymentResult({ error: data.create_request.response_message || 'Erro desconhecido ao gerar Boleto' });
         } else {
           setPaymentResult({ bank_slip: data.create_request.bank_slip });
         }
+      } else if (data.error) {
+        setPaymentResult({ error: typeof data.error === 'string' ? data.error : JSON.stringify(data.error) });
       } else {
-        setPaymentResult(data);
+        setPaymentResult({ error: 'Resposta inesperada do servidor.' });
       }
     } catch (error) {
       console.error('Erro ao processar pagamento:', error);
-      setPaymentResult({ error: 'Falha ao processar o pagamento. Tente novamente.' });
+      setPaymentResult({ error: 'Falha ao processar o pagamento. Verifique sua conexão.' });
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    // Opcional: Adicionar um toast ou feedback visual
   };
 
   return (
@@ -1028,7 +1168,7 @@ const BillingPage = () => {
                 <p className="text-on-surface-variant mt-2 font-medium">Faturado anualmente • Próxima renovação: 12 de Out, 2024</p>
               </div>
               <div className="text-right">
-                <div className="text-3xl font-black text-primary font-headline">R$ 1.240<span className="text-lg font-medium text-on-surface-variant">/ano</span></div>
+                <div className="text-3xl font-black text-primary font-headline">{formatCurrency(1240)}<span className="text-lg font-medium text-on-surface-variant">/ano</span></div>
                 <span className="inline-flex items-center px-3 py-1 rounded-full border border-primary text-primary text-[10px] font-bold mt-2">
                   <span className="w-2 h-2 bg-primary rounded-full mr-2 animate-pulse"></span>
                   ATIVO
@@ -1054,9 +1194,9 @@ const BillingPage = () => {
           </div>
           <h3 className="text-xl font-bold text-on-error-container mb-2">Fatura em Aberto</h3>
           <p className="text-on-error-container/80 text-sm mb-6 leading-relaxed">Fatura #MN-9042 para renovação de domínio está atrasada há 3 dias.</p>
-          <div className="text-2xl font-bold text-error mb-6">R$ 24,99</div>
+          <div className="text-2xl font-bold text-error mb-6">{formatCurrency(10.00)}</div>
           <button 
-            onClick={() => handlePayInvoice({ id: '#MN-9042', date: '17 de Mar, 2024', amount: 24.99, status: 'Pendente' })}
+            onClick={() => handlePayInvoice({ id: '#MN-9042', date: '17 de Mar, 2024', amount: 10.00, status: 'Pendente' })}
             className="w-full bg-error text-on-error py-3 rounded-lg font-bold hover:bg-error/90 transition-all active:scale-95"
           >
             Pagar Agora
@@ -1099,6 +1239,10 @@ const BillingPage = () => {
                       type="text" 
                       value={creditAmount}
                       onChange={(e) => setCreditAmount(e.target.value)}
+                      onBlur={() => {
+                        const amount = parseCurrency(creditAmount);
+                        if (amount > 0) setCreditAmount(formatNumberBR(amount));
+                      }}
                       className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl pl-12 pr-4 py-4 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                       placeholder="0,00"
                     />
@@ -1126,7 +1270,7 @@ const BillingPage = () => {
                 </div>
 
                 <button 
-                  onClick={() => setIsCreditModalOpen(false)}
+                  onClick={handleApplyCredit}
                   className="w-full bg-primary text-on-primary py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95"
                 >
                   Aplicar Crédito
@@ -1234,20 +1378,23 @@ const BillingPage = () => {
                           <h4 className="font-bold text-lg mb-2">Escaneie o QR Code</h4>
                           <p className="text-sm text-on-surface-variant mb-6">Abra o app do seu banco e escaneie o código acima para pagar via PIX.</p>
                           
-                          <div className="text-left space-y-2">
-                            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Ou copie o código PIX</label>
-                            <div className="flex gap-2">
-                              <input 
-                                type="text" 
-                                readOnly 
-                                value={paymentResult.pix_code || '00020126580014br.gov.bcb.pix0136...'} 
-                                className="flex-1 bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-3 font-mono text-xs focus:outline-none"
-                              />
-                              <button className="px-4 bg-secondary text-on-secondary rounded-lg font-bold hover:bg-secondary/90 transition-colors">
-                                Copiar
-                              </button>
-                            </div>
+                        <div className="text-left space-y-2">
+                          <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Ou copie o código PIX</label>
+                          <div className="flex gap-2">
+                            <input 
+                              type="text" 
+                              readOnly 
+                              value={paymentResult.pix_code || ''} 
+                              className="flex-1 bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-3 font-mono text-xs focus:outline-none"
+                            />
+                            <button 
+                              onClick={() => copyToClipboard(paymentResult.pix_code || '')}
+                              className="px-4 bg-secondary text-on-secondary rounded-lg font-bold hover:bg-secondary/90 transition-colors"
+                            >
+                              Copiar
+                            </button>
                           </div>
+                        </div>
                         </div>
                       </div>
                     ) : checkoutMethod === 'boleto' ? (
@@ -1332,12 +1479,8 @@ const BillingPage = () => {
       <div className="space-y-6">
         <h2 className="text-2xl font-extrabold font-headline tracking-tight">Métodos de Pagamento</h2>
         <div className="bg-surface-container-low rounded-xl p-2 space-y-2">
-          {[
-            { icon: <CreditCard size={20} />, title: '•••• •••• •••• 4242', sub: 'Visa • Expira em 12/26', primary: true },
-            { icon: <Wallet size={20} />, title: 'billing@monolith.tech', sub: 'PayPal Conectado' },
-            { icon: <QrCode size={20} />, title: 'Transferência Instantânea (PIX)', sub: 'Disponível no Brasil' },
-          ].map((method, i) => (
-            <div key={i} className="bg-surface-container-lowest p-5 rounded-lg flex items-center justify-between group cursor-pointer hover:bg-surface-bright transition-colors">
+          {customPaymentMethods.map((method) => (
+            <div key={method.id} className="bg-surface-container-lowest p-5 rounded-lg flex items-center justify-between group cursor-pointer hover:bg-surface-bright transition-colors">
               <div className="flex items-center space-x-4">
                 <div className="w-12 h-8 bg-on-surface/5 rounded flex items-center justify-center text-on-surface-variant">
                   {method.icon}
@@ -1347,15 +1490,138 @@ const BillingPage = () => {
                   <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">{method.sub}</p>
                 </div>
               </div>
-              {method.primary && <span className="text-primary text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Principal</span>}
+              <div className="flex items-center gap-3">
+                {method.type === 'system' ? (
+                  <span className="text-primary text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Sistema</span>
+                ) : (
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteMethod(method.id);
+                    }}
+                    className="p-2 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                    title="Excluir Método"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
-        <button className="text-primary font-bold text-xs flex items-center space-x-2 hover:underline decoration-2 underline-offset-4">
+        <button 
+          onClick={() => setIsAddCardModalOpen(true)}
+          className="text-primary font-bold text-xs flex items-center space-x-2 hover:underline decoration-2 underline-offset-4"
+        >
           <Plus size={16} />
           <span>Adicionar Novo Método</span>
         </button>
       </div>
+
+      <AnimatePresence>
+        {isAddCardModalOpen && (
+          <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAddCardModalOpen(false)}
+              className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-surface-container-lowest rounded-3xl shadow-2xl border border-outline-variant/10 overflow-hidden"
+            >
+              <div className="bg-primary p-8 text-on-primary">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-headline text-2xl font-bold">Novo Cartão de Crédito</h3>
+                  <button onClick={() => setIsAddCardModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                    <X size={24} />
+                  </button>
+                </div>
+                <p className="text-on-primary/70 text-sm">Adicione um novo cartão para pagamentos automáticos</p>
+              </div>
+
+              <form onSubmit={handleAddCard} className="p-8 space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Nome no Cartão</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={newCard.name}
+                    onChange={(e) => setNewCard({...newCard, name: e.target.value})}
+                    className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                    placeholder="Ex: JOÃO SILVA"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Número do Cartão</label>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      required
+                      value={newCard.number}
+                      onChange={(e) => {
+                        let val = e.target.value.replace(/\D/g, '');
+                        val = val.replace(/(\d{4})/g, '$1 ').trim();
+                        if (val.length <= 19) setNewCard({...newCard, number: val});
+                      }}
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all pr-12"
+                      placeholder="0000 0000 0000 0000"
+                    />
+                    <CreditCard className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40" size={20} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Data Expiração</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={newCard.expiry}
+                      onChange={(e) => {
+                        let val = e.target.value.replace(/\D/g, '');
+                        if (val.length <= 2) {
+                          setNewCard({...newCard, expiry: val});
+                        } else if (val.length <= 4) {
+                          setNewCard({...newCard, expiry: val.slice(0, 2) + '/' + val.slice(2)});
+                        }
+                      }}
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                      placeholder="MM/AA"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Código (CVV)</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={newCard.cvv}
+                      onChange={(e) => {
+                        let val = e.target.value.replace(/\D/g, '');
+                        if (val.length <= 4) setNewCard({...newCard, cvv: val});
+                      }}
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                      placeholder="123"
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="submit"
+                  className="w-full bg-primary text-on-primary py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95"
+                >
+                  Salvar Cartão
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <div className="space-y-6">
         <div className="flex justify-between items-end">
@@ -1372,11 +1638,11 @@ const BillingPage = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-container-low">
-              {MOCK_INVOICES.map(invoice => (
+              {invoices.map(invoice => (
                 <tr key={invoice.id} className="hover:bg-surface-bright transition-colors">
                   <td className="px-6 py-5 font-bold text-sm text-on-surface">{invoice.id}</td>
                   <td className="px-6 py-5 text-sm text-on-surface-variant">{invoice.date}</td>
-                  <td className="px-6 py-5 font-bold text-sm">R$ {invoice.amount.toLocaleString()}</td>
+                  <td className="px-6 py-5 font-bold text-sm">{formatCurrency(invoice.amount)}</td>
                   <td className="px-6 py-5">
                     <span className="text-[10px] font-black tracking-widest uppercase px-2 py-1 bg-primary/10 text-primary rounded">
                       {invoice.status}
@@ -1866,10 +2132,21 @@ const ActivityLogPage = ({ initialCategory = 'Toda Atividade' }: { initialCatego
   );
 };
 
-const ProfilePage = ({ onViewActivityHistory }: { onViewActivityHistory: () => void }) => {
+const ProfilePage = ({ onViewActivityHistory, userProfile, setUserProfile }: { onViewActivityHistory: () => void, userProfile: UserProfile, setUserProfile: (profile: UserProfile) => void }) => {
   const [showCurrentPass, setShowCurrentPass] = useState(false);
   const [showNewPass, setShowNewPass] = useState(false);
   const [isGeneralDataExpanded, setIsGeneralDataExpanded] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+
+  const handleSave = () => {
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setUserProfile({ ...userProfile, [name]: value });
+  };
 
   const countries = [
     "Afghanistan", "Albania", "Algeria", "American Samoa", "Andorra", "Angola", "Anguilla", "Antarctica", "Antigua and Barbuda", "Argentina", "Armenia", "Aruba", "Australia", "Austria", "Azerbaidjan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bermuda", "Bhutan", "Bolivia", "Bosnia-Herzegovina", "Botswana", "Bouvet Island", "Brazil", "British Indian Ocean Territory", "Brunei Darussalam", "Bulgaria", "Burkina Faso", "Burundi", "Cambodia", "Cameroon", "Canada", "Cape Verde", "Cayman Islands", "Central African Republic", "Chad", "Chile", "China", "Christmas Island", "Cocos (Keeling) Islands", "Colombia", "Comoros", "Congo", "Cook Islands", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "East Timor", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Ethiopia", "Falkland Islands", "Faroe Islands", "Fiji", "Finland", "France", "France (European Territory)", "French Guyana", "French Southern Territories", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Gibraltar", "Great Britain", "Greece", "Greenland", "Grenada", "Guadeloupe (French)", "Guam (USA)", "Guatemala", "Guinea", "Guinea Bissau", "Guyana", "Haiti", "Heard and McDonald Islands", "Honduras", "Hong Kong", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Ivory Coast (Cote D`Ivoire)", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Macau", "Macedonia", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Martinique (French)", "Mauritania", "Mauritius", "Mayotte", "Mexico", "Micronesia", "Moldavia", "Monaco", "Mongolia", "Montserrat", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands", "Netherlands Antilles", "Neutral Zone", "New Caledonia (French)", "New Zealand", "Nicaragua", "Niger", "Nigeria", "Niue", "Norfolk Island", "North Korea", "Northern Mariana Islands", "Norway", "Oman", "Pakistan", "Palau", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Pitcairn Island", "Poland", "Polynesia (French)", "Portugal", "Puerto Rico", "Qatar", "Reunion (French)", "Romania", "Russian Federation", "Rwanda", "S. Georgia & S. Sandwich Isls.", "Saint Helena", "Saint Kitts & Nevis Anguilla", "Saint Lucia", "Saint Pierre and Miquelon", "Saint Tome and Principe", "Saint Vincent & Grenadines", "Samoa", "San Marino", "Saudi Arabia", "Senegal", "Seychelles", "Sierra Leone", "Singapore", "Slovak Republic", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "Spain", "Sri Lanka", "Sudan", "Suriname", "Svalbard and Jan Mayen Islands", "Swaziland", "Sweden", "Switzerland", "Syria", "Tadjikistan", "Taiwan", "Tanzania", "Thailand", "Togo", "Tokelau", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Turks and Caicos Islands", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "USA Minor Outlying Islands", "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City State", "Venezuela", "Vietnam", "Virgin Islands (British)", "Virgin Islands (USA)", "Wallis and Futuna Islands", "Western Sahara", "Yemen", "Zaire", "Zambia", "Zimbabwe"
@@ -1905,15 +2182,15 @@ const ProfilePage = ({ onViewActivityHistory }: { onViewActivityHistory: () => v
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Nome Completo</label>
-                <input type="text" defaultValue="Alex Sterling" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                <input type="text" name="name" value={userProfile.name} onChange={handleInputChange} className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Endereço de E-mail</label>
-                <input type="email" defaultValue="alex@sterling.com" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                <input type="email" name="email" value={userProfile.email} onChange={handleInputChange} className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Número de Telefone</label>
-                <input type="tel" defaultValue="+1 (555) 123-4567" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                <input type="tel" name="phone" value={userProfile.phone} onChange={handleInputChange} placeholder="+1 (555) 123-4567" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -1939,33 +2216,25 @@ const ProfilePage = ({ onViewActivityHistory }: { onViewActivityHistory: () => v
                   className="overflow-hidden"
                 >
                   <div className="pt-8 border-t border-outline-variant/10 mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Primeiro Nome</label>
-                      <input type="text" placeholder="Seu primeiro nome" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Sobre Nome</label>
-                      <input type="text" placeholder="Seu sobrenome" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
-                    </div>
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Endereço</label>
-                      <input type="text" placeholder="Rua, número, apto" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                      <input type="text" name="address" value={userProfile.address} onChange={handleInputChange} placeholder="Rua, número, apto" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Bairro</label>
-                      <input type="text" placeholder="Seu bairro" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                      <input type="text" name="neighborhood" value={userProfile.neighborhood} onChange={handleInputChange} placeholder="Seu bairro" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Empresa</label>
-                      <input type="text" placeholder="Nome da empresa" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                      <input type="text" name="company" value={userProfile.company} onChange={handleInputChange} placeholder="Nome da empresa" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Cidade</label>
-                      <input type="text" placeholder="Sua cidade" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                      <input type="text" name="city" value={userProfile.city} onChange={handleInputChange} placeholder="Sua cidade" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Pais</label>
-                      <select className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all">
+                      <select name="country" value={userProfile.country} onChange={handleInputChange} className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all">
                         {countries.map(country => (
                           <option key={country} value={country}>{country}</option>
                         ))}
@@ -1973,27 +2242,23 @@ const ProfilePage = ({ onViewActivityHistory }: { onViewActivityHistory: () => v
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">CEP</label>
-                      <input type="text" placeholder="00000-000" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Telefone</label>
-                      <input type="tel" placeholder="+55 (00) 00000-0000" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                      <input type="text" name="zipCode" value={userProfile.zipCode} onChange={handleInputChange} placeholder="00000-000" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">CNPJ</label>
-                      <input type="text" placeholder="00.000.000/0000-00" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                      <input type="text" name="cnpj" value={userProfile.cnpj} onChange={handleInputChange} placeholder="00.000.000/0000-00" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">CPF</label>
-                      <input type="text" placeholder="000.000.000-00" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                      <input type="text" name="cpf" value={userProfile.cpf} onChange={handleInputChange} placeholder="000.000.000-00" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Nascimento</label>
-                      <input type="date" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                      <input type="date" name="birthDate" value={userProfile.birthDate} onChange={handleInputChange} className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Domínio</label>
-                      <input type="text" placeholder="exemplo.com.br" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                      <input type="text" name="domain" value={userProfile.domain} onChange={handleInputChange} placeholder="exemplo.com.br" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
                     </div>
                   </div>
                 </motion.div>
@@ -2008,11 +2273,28 @@ const ProfilePage = ({ onViewActivityHistory }: { onViewActivityHistory: () => v
                 {isGeneralDataExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 Dados Gerais
               </button>
-              <button className="px-8 py-3 bg-primary text-on-primary rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-primary/20">
+              <button 
+                onClick={handleSave}
+                className="px-8 py-3 bg-primary text-on-primary rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-primary/20"
+              >
                 Salvar Alterações
               </button>
             </div>
           </section>
+
+          <AnimatePresence>
+            {showToast && (
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 50 }}
+                className="fixed bottom-8 right-8 bg-green-500 text-white px-6 py-4 rounded-2xl shadow-2xl font-bold flex items-center gap-3 z-50"
+              >
+                <CheckCircle size={24} />
+                Perfil atualizado com sucesso!
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Gerenciamento de Senha */}
           <section className="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/10 shadow-sm">
@@ -2928,6 +3210,22 @@ export default function MonolithApp() {
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [activityCategory, setActivityCategory] = useState('Toda Atividade');
+  const [invoices, setInvoices] = useState<Invoice[]>(MOCK_INVOICES);
+  const [userProfile, setUserProfile] = useState<UserProfile>({
+    name: 'Alex Sterling',
+    email: 'alex@sterling.com',
+    phone: '+1 (555) 123-4567',
+    address: '',
+    neighborhood: '',
+    company: '',
+    city: '',
+    country: 'Brasil',
+    zipCode: '',
+    cnpj: '20.962.496/0001-91',
+    cpf: '031.277.389-78',
+    birthDate: '',
+    domain: ''
+  });
 
   const handlePageChange = (page: Page) => {
     if (page === 'activity') {
@@ -2965,7 +3263,7 @@ export default function MonolithApp() {
         onNotificationClick={handleNotificationClick}
       />
       
-      <main className="flex-grow pt-32 pb-24 px-6 md:px-10 lg:px-20 max-w-[1920px] mx-auto w-full">
+      <main className="flex-grow pt-32 pb-24 px-6 md:px-10 lg:px-20 max-w-[1600px] mx-auto w-full">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentPage}
@@ -2986,7 +3284,7 @@ export default function MonolithApp() {
               />
             )}
             {currentPage === 'products' && <ProductsPage />}
-            {currentPage === 'billing' && <BillingPage />}
+            {currentPage === 'billing' && <BillingPage userProfile={userProfile} invoices={invoices} setInvoices={setInvoices} />}
             {currentPage === 'support' && <SupportPage onTicketClick={handleTicketClick} />}
             {currentPage === 'ticket-detail' && selectedTicketId && (
               <TicketDetailPage ticketId={selectedTicketId} onBack={() => setCurrentPage('support')} />
@@ -3000,6 +3298,8 @@ export default function MonolithApp() {
                   setActivityCategory('Conta');
                   setCurrentPage('activity');
                 }} 
+                userProfile={userProfile}
+                setUserProfile={setUserProfile}
               />
             )}
             {currentPage === 'terms' && <TermsOfServicePage onBack={() => setCurrentPage('dashboard')} />}

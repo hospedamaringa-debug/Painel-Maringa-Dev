@@ -14,7 +14,7 @@ export async function POST(req: Request) {
       order_id: invoiceId,
       payer_email: payerEmail || 'cliente@hospedamaringa.com.br',
       payer_name: payerName || 'Cliente Hospeda Maringá',
-      payer_cpf_cnpj: payerCpf || '00000000000',
+      payer_cpf_cnpj: payerCpf ? payerCpf.replace(/\D/g, '') : '00000000000',
       days_due_date: 3,
       items: [{
         description: description || `Fatura ${invoiceId}`,

@@ -61,7 +61,7 @@ interface Invoice {
   id: string;
   date: string;
   amount: number;
-  status: 'Paid' | 'Pending' | 'Overdue';
+  status: 'Pago' | 'Pendente' | 'Atrasado';
 }
 
 interface AccessInfo {
@@ -93,24 +93,24 @@ interface Service {
 interface SupportTicket {
   id: string;
   title: string;
-  priority: 'High' | 'Medium' | 'Low';
-  status: 'Open' | 'In Progress' | 'Closed';
+  priority: 'Alta' | 'Média' | 'Baixa';
+  status: 'Aberto' | 'Em Andamento' | 'Fechado';
   updatedAt: string;
 }
 
 // --- Mock Data ---
 
 const MOCK_INVOICES: Invoice[] = [
-  { id: '#MN-9042', date: 'Mar 17, 2024', amount: 149.00, status: 'Pending' },
-  { id: '#MN-8932', date: 'Sep 12, 2023', amount: 1240.00, status: 'Paid' },
-  { id: '#MN-8841', date: 'Aug 12, 2023', amount: 45.00, status: 'Paid' },
-  { id: '#MN-8720', date: 'Jul 12, 2023', amount: 12.50, status: 'Paid' },
+  { id: '#MN-9042', date: '17 de Mar, 2024', amount: 149.00, status: 'Pendente' },
+  { id: '#MN-8932', date: '12 de Set, 2023', amount: 1240.00, status: 'Pago' },
+  { id: '#MN-8841', date: '12 de Ago, 2023', amount: 45.00, status: 'Pago' },
+  { id: '#MN-8720', date: '12 de Jul, 2023', amount: 12.50, status: 'Pago' },
 ];
 
 const MOCK_SERVICES: Service[] = [
   { 
     id: '1', 
-    name: 'Shared Pro Hosting', 
+    name: 'Hospedagem Pro Compartilhada', 
     host: 'monolith-v1.com', 
     type: 'hosting', 
     status: 'active',
@@ -122,14 +122,14 @@ const MOCK_SERVICES: Service[] = [
       nameservers: ['ns1.monolith-dns.com', 'ns2.monolith-dns.com'],
       specs: {
         storage: '50GB NVMe',
-        bandwidth: 'Unlimited',
-        ram: '2GB Shared'
+        bandwidth: 'Ilimitado',
+        ram: '2GB Compartilhado'
       }
     }
   },
   { 
     id: '2', 
-    name: 'Managed VPS NVMe', 
+    name: 'VPS Gerenciado NVMe', 
     host: '192.168.1.44', 
     type: 'vps', 
     status: 'active',
@@ -141,7 +141,7 @@ const MOCK_SERVICES: Service[] = [
       directAdminUrl: 'https://192.168.1.44:2222',
       nameservers: ['ns1.monolith-vps.com', 'ns2.monolith-vps.com'],
       specs: {
-        cpu: '4 vCPU Cores',
+        cpu: '4 Núcleos vCPU',
         ram: '8GB LPDDR5',
         storage: '400GB NVMe SSD',
         os: 'Ubuntu 22.04 LTS'
@@ -151,23 +151,23 @@ const MOCK_SERVICES: Service[] = [
 ];
 
 const MOCK_TICKETS: SupportTicket[] = [
-  { id: '#MN-8291', title: 'Database Latency in US-EAST-1', priority: 'High', status: 'Open', updatedAt: '14m ago' },
-  { id: '#MN-8104', title: 'SSL Certificate Renewal Error', priority: 'Medium', status: 'In Progress', updatedAt: '2h ago' },
-  { id: '#MN-7922', title: 'Invoice #8292 Query', priority: 'Low', status: 'Closed', updatedAt: 'Dec 12, 2023' },
+  { id: '#MN-8291', title: 'Latência no Banco de Dados em US-EAST-1', priority: 'Alta', status: 'Aberto', updatedAt: '14m atrás' },
+  { id: '#MN-8104', title: 'Erro na Renovação do Certificado SSL', priority: 'Média', status: 'Em Andamento', updatedAt: '2h atrás' },
+  { id: '#MN-7922', title: 'Dúvida sobre a Fatura #8292', priority: 'Baixa', status: 'Fechado', updatedAt: '12 de Dez, 2023' },
 ];
 
 const MOCK_TICKET_RESPONSES: Record<string, { sender: string, role: 'support' | 'user', message: string, time: string }[]> = {
   '#MN-8291': [
-    { sender: 'Alex Sterling', role: 'user', message: 'I am seeing significant latency spikes in my US-EAST-1 database cluster. Queries that usually take 10ms are now taking over 500ms.', time: '20m ago' },
-    { sender: 'Monolith Support (Sarah)', role: 'support', message: 'Hello Alex, we have identified a network congestion issue in the US-EAST-1 region affecting some NVMe clusters. Our engineering team is rerouting traffic now. You should see performance return to normal within the next 10 minutes.', time: '14m ago' },
+    { sender: 'Alex Sterling', role: 'user', message: 'Estou vendo picos significativos de latência no meu cluster de banco de dados US-EAST-1. Consultas que normalmente levam 10ms agora estão levando mais de 500ms.', time: '20m atrás' },
+    { sender: 'Suporte Monolith (Sarah)', role: 'support', message: 'Olá Alex, identificamos um problema de congestionamento de rede na região US-EAST-1 afetando alguns clusters NVMe. Nossa equipe de engenharia está redirecionando o tráfego agora. Você deve ver o desempenho voltar ao normal nos próximos 10 minutos.', time: '14m atrás' },
   ],
   '#MN-8104': [
-    { sender: 'Alex Sterling', role: 'user', message: 'The auto-renewal for my SSL certificate on dev-stack.net failed with a timeout error. Can you check the ACME challenge status?', time: '3h ago' },
-    { sender: 'Monolith Support (Mike)', role: 'support', message: 'Checking now. It seems your DNS provider is blocking our validation requests. Please ensure port 53 is open for our IP range or add the TXT record manually to bypass the automated check.', time: '2h ago' },
+    { sender: 'Alex Sterling', role: 'user', message: 'A renovação automática do meu certificado SSL em dev-stack.net falhou com um erro de timeout. Você pode verificar o status do desafio ACME?', time: '3h atrás' },
+    { sender: 'Suporte Monolith (Mike)', role: 'support', message: 'Verificando agora. Parece que seu provedor de DNS está bloqueando nossas solicitações de validação. Certifique-se de que a porta 53 esteja aberta para nossa faixa de IP ou adicione o registro TXT manualmente para ignorar a verificação automatizada.', time: '2h atrás' },
   ],
   '#MN-7922': [
-    { sender: 'Alex Sterling', role: 'user', message: 'I was charged twice for Invoice #8292. Can you please verify and issue a refund for the duplicate transaction?', time: 'Dec 12, 2023' },
-    { sender: 'Monolith Billing', role: 'support', message: 'We have verified the duplicate charge. A refund has been processed and should appear in your account within 3-5 business days. We apologize for the inconvenience.', time: 'Dec 12, 2023' },
+    { sender: 'Alex Sterling', role: 'user', message: 'Fui cobrado duas vezes pela Fatura #8292. Você pode verificar e emitir um reembolso para a transação duplicada?', time: '12 de Dez, 2023' },
+    { sender: 'Faturamento Monolith', role: 'support', message: 'Verificamos a cobrança duplicada. Um reembolso foi processado e deve aparecer em sua conta dentro de 3 a 5 dias úteis. Pedimos desculpas pelo inconveniente.', time: '12 de Dez, 2023' },
   ]
 };
 
@@ -180,11 +180,11 @@ interface SystemStatus {
 
 const MOCK_STATUS: SystemStatus[] = [
   { name: 'API Gateway', status: 'operational', uptime: '99.99%', latency: '24ms' },
-  { name: 'Primary Database', status: 'operational', uptime: '99.95%', latency: '12ms' },
-  { name: 'Object Storage', status: 'operational', uptime: '100%', latency: '45ms' },
-  { name: 'Authentication Service', status: 'operational', uptime: '99.99%', latency: '18ms' },
-  { name: 'Content Delivery Network', status: 'operational', uptime: '99.99%', latency: '32ms' },
-  { name: 'Compute Engine (US-EAST)', status: 'degraded', uptime: '98.4%', latency: '110ms' },
+  { name: 'Banco de Dados Primário', status: 'operational', uptime: '99.95%', latency: '12ms' },
+  { name: 'Armazenamento de Objetos', status: 'operational', uptime: '100%', latency: '45ms' },
+  { name: 'Serviço de Autenticação', status: 'operational', uptime: '99.99%', latency: '18ms' },
+  { name: 'Rede de Entrega de Conteúdo (CDN)', status: 'operational', uptime: '99.99%', latency: '32ms' },
+  { name: 'Mecanismo de Computação (US-EAST)', status: 'degraded', uptime: '98.4%', latency: '110ms' },
 ];
 
 interface ActivityLog {
@@ -197,12 +197,12 @@ interface ActivityLog {
 }
 
 const MOCK_ACTIVITY: ActivityLog[] = [
-  { id: 'act_1', event: 'Server Restart', user: 'System', category: 'infrastructure', timestamp: '10m ago', details: 'Node-04 restarted due to kernel update.' },
-  { id: 'act_2', event: 'Login Successful', user: 'Alex Sterling', category: 'account', timestamp: '45m ago', details: 'Login from new device: Chrome/macOS.' },
-  { id: 'act_3', event: 'Firewall Rule Updated', user: 'Alex Sterling', category: 'security', timestamp: '2h ago', details: 'Added port 443 to allow HTTPS traffic.' },
-  { id: 'act_4', event: 'Backup Completed', user: 'System', category: 'infrastructure', timestamp: '4h ago', details: 'Daily snapshot of DB-Primary successful.' },
-  { id: 'act_5', event: 'Payment Method Added', user: 'Alex Sterling', category: 'billing', timestamp: '1d ago', details: 'Visa card ending in 4242 added.' },
-  { id: 'act_6', event: 'Password Changed', user: 'Alex Sterling', category: 'security', timestamp: '2d ago', details: 'User initiated password rotation.' },
+  { id: 'act_1', event: 'Reinicialização do Servidor', user: 'Sistema', category: 'infrastructure', timestamp: '10m atrás', details: 'Node-04 reiniciado devido à atualização do kernel.' },
+  { id: 'act_2', event: 'Login Bem-sucedido', user: 'Alex Sterling', category: 'account', timestamp: '45m atrás', details: 'Login de novo dispositivo: Chrome/macOS.' },
+  { id: 'act_3', event: 'Regra de Firewall Atualizada', user: 'Alex Sterling', category: 'security', timestamp: '2h atrás', details: 'Porta 443 adicionada para permitir tráfego HTTPS.' },
+  { id: 'act_4', event: 'Backup Concluído', user: 'Sistema', category: 'infrastructure', timestamp: '4h atrás', details: 'Snapshot diário do DB-Primary bem-sucedido.' },
+  { id: 'act_5', event: 'Método de Pagamento Adicionado', user: 'Alex Sterling', category: 'billing', timestamp: '1d atrás', details: 'Cartão Visa com final 4242 adicionado.' },
+  { id: 'act_6', event: 'Senha Alterada', user: 'Alex Sterling', category: 'security', timestamp: '2d atrás', details: 'Usuário iniciou a rotação de senha.' },
 ];
 
 interface ProjectTask {
@@ -226,25 +226,25 @@ interface Project {
 const MOCK_PROJECTS: Project[] = [
   {
     id: 'proj_1',
-    name: 'Infrastructure Migration',
-    description: 'Moving legacy systems to the new Monolith NVMe clusters.',
+    name: 'Migração de Infraestrutura',
+    description: 'Movendo sistemas legados para os novos clusters Monolith NVMe.',
     progress: 65,
     members: 8,
     tasks: [
-      { id: 'task_1', title: 'Database snapshot verification', status: 'done', priority: 'high', assignee: 'Alex S.', dueDate: 'Mar 22' },
-      { id: 'task_2', title: 'Network latency testing', status: 'in-progress', priority: 'medium', assignee: 'Sarah K.', dueDate: 'Mar 24' },
-      { id: 'task_3', title: 'SSL certificate migration', status: 'todo', priority: 'high', assignee: 'Alex S.', dueDate: 'Mar 25' },
+      { id: 'task_1', title: 'Verificação de snapshot do banco de dados', status: 'done', priority: 'high', assignee: 'Alex S.', dueDate: '22 de Mar' },
+      { id: 'task_2', title: 'Teste de latência de rede', status: 'in-progress', priority: 'medium', assignee: 'Sarah K.', dueDate: '24 de Mar' },
+      { id: 'task_3', title: 'Migração de certificado SSL', status: 'todo', priority: 'high', assignee: 'Alex S.', dueDate: '25 de Mar' },
     ]
   },
   {
     id: 'proj_2',
-    name: 'Security Audit Q1',
-    description: 'Quarterly security review and penetration testing.',
+    name: 'Auditoria de Segurança Q1',
+    description: 'Revisão trimestral de segurança e testes de invasão.',
     progress: 30,
     members: 4,
     tasks: [
-      { id: 'task_4', title: 'Firewall rule review', status: 'in-progress', priority: 'high', assignee: 'Mike R.', dueDate: 'Mar 28' },
-      { id: 'task_5', title: 'User access log analysis', status: 'todo', priority: 'low', assignee: 'Sarah K.', dueDate: 'Apr 02' },
+      { id: 'task_4', title: 'Revisão de regras de firewall', status: 'in-progress', priority: 'high', assignee: 'Mike R.', dueDate: '28 de Mar' },
+      { id: 'task_5', title: 'Análise de log de acesso do usuário', status: 'todo', priority: 'low', assignee: 'Sarah K.', dueDate: '02 de Abr' },
     ]
   }
 ];
@@ -256,20 +256,20 @@ const Navbar = ({ currentPage, setCurrentPage }: { currentPage: Page, setCurrent
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const navItems: { label: string, value: Page }[] = [
-    { label: 'Home', value: 'dashboard' },
-    { label: 'Products', value: 'products' },
-    { label: 'Domains', value: 'domains' },
-    { label: 'Projects', value: 'projects' },
-    { label: 'Support', value: 'support' },
-    { label: 'Billing', value: 'billing' },
+    { label: 'Início', value: 'dashboard' },
+    { label: 'Produtos', value: 'products' },
+    { label: 'Domínios', value: 'domains' },
+    { label: 'Projetos', value: 'projects' },
+    { label: 'Suporte', value: 'support' },
+    { label: 'Faturamento', value: 'billing' },
     { label: 'Status', value: 'status' },
-    { label: 'Activity', value: 'activity' },
+    { label: 'Atividade', value: 'activity' },
   ];
 
   const notifications = [
-    { id: 1, title: 'Open Ticket', detail: '#MN-8291: Database Latency in US-EAST-1', type: 'support', time: '14m ago' },
-    { id: 2, title: 'Pending Invoice', detail: '#MN-8932: R$ 1.240,00 awaiting payment', type: 'billing', time: '2h ago' },
-    { id: 3, title: 'System Alert', detail: 'Compute Engine (US-EAST) is currently degraded', type: 'status', time: '1h ago' },
+    { id: 1, title: 'Ticket Aberto', detail: '#MN-8291: Latência no Banco de Dados em US-EAST-1', type: 'suporte', time: '14m atrás' },
+    { id: 2, title: 'Fatura Pendente', detail: '#MN-8932: R$ 1.240,00 aguardando pagamento', type: 'faturamento', time: '2h atrás' },
+    { id: 3, title: 'Alerta do Sistema', detail: 'Mecanismo de Computação (US-EAST) está degradado', type: 'status', time: '1h atrás' },
   ];
 
   return (
@@ -317,8 +317,8 @@ const Navbar = ({ currentPage, setCurrentPage }: { currentPage: Page, setCurrent
                   className="absolute right-0 mt-4 w-80 bg-surface-container-lowest rounded-2xl shadow-2xl border border-outline-variant/10 overflow-hidden z-50"
                 >
                   <div className="p-4 border-b border-outline-variant/10 bg-surface-container-low flex justify-between items-center">
-                    <h4 className="font-bold text-xs uppercase tracking-widest">Notifications</h4>
-                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">3 New</span>
+                    <h4 className="font-bold text-xs uppercase tracking-widest">Notificações</h4>
+                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">3 Novas</span>
                   </div>
                   <div className="divide-y divide-outline-variant/10">
                     {notifications.map((n) => (
@@ -332,7 +332,7 @@ const Navbar = ({ currentPage, setCurrentPage }: { currentPage: Page, setCurrent
                     ))}
                   </div>
                   <button className="w-full p-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant hover:bg-surface-container-low transition-colors">
-                    Clear All
+                    Limpar Tudo
                   </button>
                 </motion.div>
               )}
@@ -391,13 +391,13 @@ const Footer = ({ onStatusClick, onTermsClick, onPrivacyClick }: { onStatusClick
     <div className="flex flex-col md:flex-row justify-between items-center px-6 md:px-10 w-full max-w-[1920px] mx-auto gap-8">
       <div className="text-lg font-bold text-primary font-brand">Monolith Infrastructure</div>
       <div className="flex flex-wrap justify-center gap-6 md:gap-8">
-        {['Terms of Service', 'Privacy Policy', 'Status Page', 'Network Map'].map((item) => (
+        {['Termos de Serviço', 'Política de Privacidade', 'Página de Status', 'Mapa da Rede'].map((item) => (
           <button 
             key={item} 
             onClick={() => {
-              if (item === 'Status Page') onStatusClick();
-              if (item === 'Terms of Service') onTermsClick();
-              if (item === 'Privacy Policy') onPrivacyClick();
+              if (item === 'Página de Status') onStatusClick();
+              if (item === 'Termos de Serviço') onTermsClick();
+              if (item === 'Política de Privacidade') onPrivacyClick();
             }}
             className="text-on-surface-variant font-medium hover:underline decoration-2 underline-offset-4 transition-opacity hover:opacity-80 text-sm"
           >
@@ -406,7 +406,7 @@ const Footer = ({ onStatusClick, onTermsClick, onPrivacyClick }: { onStatusClick
         ))}
       </div>
       <div className="text-on-surface-variant font-medium text-xs opacity-60">
-        © 2024 Monolith Infrastructure. All rights reserved.
+        © 2024 Monolith Infrastructure. Todos os direitos reservados.
       </div>
     </div>
   </footer>
@@ -422,36 +422,36 @@ const TermsOfServicePage = ({ onBack }: { onBack: () => void }) => (
         className="mb-8 flex items-center gap-2 text-primary font-bold uppercase tracking-widest text-xs hover:gap-3 transition-all mx-auto"
       >
         <ArrowLeft size={16} />
-        Back to Overview
+        Voltar para a Visão Geral
       </button>
-      <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Terms of Service</h1>
-      <p className="text-on-surface-variant text-lg leading-relaxed">Last updated: March 20, 2024</p>
+      <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Termos de Serviço</h1>
+      <p className="text-on-surface-variant text-lg leading-relaxed">Última atualização: 20 de Março de 2024</p>
     </header>
 
     <div className="bg-surface-container-lowest p-8 md:p-12 rounded-2xl border border-outline-variant/10 space-y-8 text-on-surface-variant leading-relaxed">
       <section className="space-y-4">
-        <h2 className="text-2xl font-bold text-on-surface font-headline">1. Acceptance of Terms</h2>
-        <p>By accessing and using the Monolith Infrastructure platform, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.</p>
+        <h2 className="text-2xl font-bold text-on-surface font-headline">1. Aceitação dos Termos</h2>
+        <p>Ao acessar e usar a plataforma Monolith Infrastructure, você concorda em cumprir e estar vinculado a estes Termos de Serviço. Se você não concordar com estes termos, por favor, não use nossos serviços.</p>
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-2xl font-bold text-on-surface font-headline">2. Service Level Agreement (SLA)</h2>
-        <p>We guarantee a 99.99% uptime for our core infrastructure. In the event of a breach of this SLA, customers may be eligible for service credits as outlined in our detailed SLA documentation.</p>
+        <h2 className="text-2xl font-bold text-on-surface font-headline">2. Acordo de Nível de Serviço (SLA)</h2>
+        <p>Garantimos 99,99% de tempo de atividade para nossa infraestrutura principal. No caso de uma violação deste SLA, os clientes podem ter direito a créditos de serviço, conforme descrito em nossa documentação detalhada de SLA.</p>
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-2xl font-bold text-on-surface font-headline">3. User Responsibilities</h2>
-        <p>Users are responsible for maintaining the security of their account credentials and for all activities that occur under their account. You agree to notify us immediately of any unauthorized use of your account.</p>
+        <h2 className="text-2xl font-bold text-on-surface font-headline">3. Responsabilidades do Usuário</h2>
+        <p>Os usuários são responsáveis por manter a segurança de suas credenciais de conta e por todas as atividades que ocorrem em sua conta. Você concorda em nos notificar imediatamente sobre qualquer uso não autorizado de sua conta.</p>
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-2xl font-bold text-on-surface font-headline">4. Prohibited Activities</h2>
-        <p>Our infrastructure may not be used for illegal activities, including but not limited to: hosting malware, conducting DDoS attacks, or unauthorized access to other systems.</p>
+        <h2 className="text-2xl font-bold text-on-surface font-headline">4. Atividades Proibidas</h2>
+        <p>Nossa infraestrutura não pode ser usada para atividades ilegais, incluindo, mas não se limitando a: hospedagem de malware, realização de ataques DDoS ou acesso não autorizado a outros sistemas.</p>
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-2xl font-bold text-on-surface font-headline">5. Limitation of Liability</h2>
-        <p>Monolith Infrastructure shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use the service.</p>
+        <h2 className="text-2xl font-bold text-on-surface font-headline">5. Limitação de Responsabilidade</h2>
+        <p>A Monolith Infrastructure não será responsável por quaisquer danos indiretos, incidentais, especiais, consequenciais ou punitivos resultantes do seu uso ou incapacidade de usar o serviço.</p>
       </section>
     </div>
   </div>
@@ -465,36 +465,36 @@ const PrivacyPolicyPage = ({ onBack }: { onBack: () => void }) => (
         className="mb-8 flex items-center gap-2 text-primary font-bold uppercase tracking-widest text-xs hover:gap-3 transition-all mx-auto"
       >
         <ArrowLeft size={16} />
-        Back to Overview
+        Voltar para a Visão Geral
       </button>
-      <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Privacy Policy</h1>
-      <p className="text-on-surface-variant text-lg leading-relaxed">Last updated: March 20, 2024</p>
+      <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Política de Privacidade</h1>
+      <p className="text-on-surface-variant text-lg leading-relaxed">Última atualização: 20 de Março de 2024</p>
     </header>
 
     <div className="bg-surface-container-lowest p-8 md:p-12 rounded-2xl border border-outline-variant/10 space-y-8 text-on-surface-variant leading-relaxed">
       <section className="space-y-4">
-        <h2 className="text-2xl font-bold text-on-surface font-headline">1. Information We Collect</h2>
-        <p>We collect information you provide directly to us, such as when you create an account, update your profile, or contact support. This may include your name, email address, and billing information.</p>
+        <h2 className="text-2xl font-bold text-on-surface font-headline">1. Informações que Coletamos</h2>
+        <p>Coletamos informações que você nos fornece diretamente, como quando você cria uma conta, atualiza seu perfil ou entra em contato com o suporte. Isso pode incluir seu nome, endereço de e-mail e informações de faturamento.</p>
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-2xl font-bold text-on-surface font-headline">2. How We Use Your Information</h2>
-        <p>We use the information we collect to provide, maintain, and improve our services, to process transactions, and to communicate with you about your account and our platform.</p>
+        <h2 className="text-2xl font-bold text-on-surface font-headline">2. Como Usamos Suas Informações</h2>
+        <p>Usamos as informações que coletamos para fornecer, manter e melhorar nossos serviços, processar transações e nos comunicar com você sobre sua conta e nossa plataforma.</p>
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-2xl font-bold text-on-surface font-headline">3. Data Security</h2>
-        <p>We implement industry-standard security measures to protect your personal information from unauthorized access, disclosure, or destruction. However, no method of transmission over the internet is 100% secure.</p>
+        <h2 className="text-2xl font-bold text-on-surface font-headline">3. Segurança de Dados</h2>
+        <p>Implementamos medidas de segurança padrão da indústria para proteger suas informações pessoais contra acesso, divulgação ou destruição não autorizados. No entanto, nenhum método de transmissão pela internet é 100% seguro.</p>
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-2xl font-bold text-on-surface font-headline">4. Third-Party Services</h2>
-        <p>We may share your information with third-party service providers who perform services on our behalf, such as payment processing and data analysis. These providers are obligated to protect your information.</p>
+        <h2 className="text-2xl font-bold text-on-surface font-headline">4. Serviços de Terceiros</h2>
+        <p>Podemos compartilhar suas informações com prestadores de serviços terceirizados que realizam serviços em nosso nome, como processamento de pagamentos e análise de dados. Esses provedores são obrigados a proteger suas informações.</p>
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-2xl font-bold text-on-surface font-headline">5. Your Rights</h2>
-        <p>You have the right to access, update, or delete your personal information. You can manage your account settings through the platform or contact us for assistance.</p>
+        <h2 className="text-2xl font-bold text-on-surface font-headline">5. Seus Direitos</h2>
+        <p>Você tem o direito de acessar, atualizar ou excluir suas informações pessoais. Você pode gerenciar as configurações de sua conta através da plataforma ou entrar em contato conosco para obter assistência.</p>
       </section>
     </div>
   </div>
@@ -642,8 +642,8 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
   return (
     <div className="space-y-12">
       <div>
-        <label className="text-primary font-bold tracking-widest uppercase text-xs mb-2 block">Infrastructure Dashboard</label>
-        <h1 className="font-headline text-5xl font-extrabold tracking-tighter text-on-surface">Cloud Overview</h1>
+        <label className="text-primary font-bold tracking-widest uppercase text-xs mb-2 block">Painel de Infraestrutura</label>
+        <h1 className="font-headline text-5xl font-extrabold tracking-tighter text-on-surface">Visão Geral da Nuvem</h1>
       </div>
 
       <div className="grid grid-cols-12 gap-8">
@@ -653,15 +653,15 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
             <div className="absolute top-0 right-0 p-8">
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 bg-primary rounded-full pulse-ring"></span>
-                <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Live Performance</span>
+                <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Desempenho em Tempo Real</span>
               </div>
             </div>
             <h3 className="font-headline text-2xl font-bold mb-8">Servidor</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {[
-                { label: 'CPU Load', value: `${Math.round(cpu)}%`, sub: 'Average: 2.4 GHz per core', progress: cpu },
-                { label: 'Memory', value: `${(8 * mem / 100).toFixed(1)}GB`, sub: 'Total: 8GB LPDDR5', progress: mem },
-                { label: 'NVMe Disk', value: '120GB', sub: '400GB SSD Provisioned', progress: 30 },
+                { label: 'Carga da CPU', value: `${Math.round(cpu)}%`, sub: 'Média: 2.4 GHz por núcleo', progress: cpu },
+                { label: 'Memória', value: `${(8 * mem / 100).toFixed(1)}GB`, sub: 'Total: 8GB LPDDR5', progress: mem },
+                { label: 'Disco NVMe', value: '120GB', sub: '400GB SSD Provisionado', progress: 30 },
               ].map(stat => (
                 <div key={stat.label} className="space-y-4">
                   <div className="flex justify-between items-end">
@@ -686,8 +686,8 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
         <div className="bg-surface-container-lowest rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h3 className="font-bold text-xl mb-1">Active Services</h3>
-              <p className="text-on-surface-variant text-sm">2 Subscriptions active</p>
+              <h3 className="font-bold text-xl mb-1">Serviços Ativos</h3>
+              <p className="text-on-surface-variant text-sm">2 Assinaturas ativas</p>
             </div>
             <div className="bg-primary-fixed p-3 rounded-lg">
               <Cloud className="text-primary" size={24} />
@@ -707,7 +707,7 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
                   onClick={() => onManageService(service.id)}
                   className="text-primary font-bold text-xs uppercase tracking-wider hover:underline"
                 >
-                  Manage
+                  Gerenciar
                 </button>
               </div>
             ))}
@@ -727,7 +727,7 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
           </div>
           <div className="space-y-4">
             {/* 1 Fatura Pendente */}
-            {MOCK_INVOICES.filter(i => i.status === 'Pending').slice(0, 1).map(invoice => (
+            {MOCK_INVOICES.filter(i => i.status === 'Pendente').slice(0, 1).map(invoice => (
               <div 
                 key={invoice.id} 
                 className="flex items-center justify-between p-4 bg-surface-container-low rounded-lg hover:bg-surface-container-high transition-colors cursor-pointer group"
@@ -742,13 +742,13 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
                   </div>
                 </div>
                 <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-error-container text-on-error-container">
-                  Pending
+                  Pendente
                 </span>
               </div>
             ))}
 
             {/* 1 Ticket Aberto */}
-            {MOCK_TICKETS.filter(t => t.status === 'Open').slice(0, 1).map(ticket => (
+            {MOCK_TICKETS.filter(t => t.status === 'Aberto').slice(0, 1).map(ticket => (
               <div 
                 key={ticket.id} 
                 onClick={() => onTicketClick(ticket.id)}
@@ -764,11 +764,11 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
                   </div>
                 </div>
                 <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded ${
-                  ticket.priority === 'High' ? 'bg-error-container text-on-error-container' : 
-                  ticket.priority === 'Medium' ? 'bg-secondary-container text-on-secondary-container' : 
+                  ticket.priority === 'Alta' ? 'bg-error-container text-on-error-container' : 
+                  ticket.priority === 'Média' ? 'bg-secondary-container text-on-secondary-container' : 
                   'bg-outline-variant/30 text-on-surface-variant'
                 }`}>
-                  {ticket.priority}
+                  {ticket.priority === 'Alta' ? 'Alta' : ticket.priority === 'Média' ? 'Média' : 'Baixa'}
                 </span>
               </div>
             ))}
@@ -781,26 +781,26 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
           <div className="absolute -right-4 -bottom-4 opacity-10 transform group-hover:scale-110 transition-transform">
             <HelpCircle size={120} />
           </div>
-          <h4 className="text-xl font-bold mb-2">Need Technical Assistance?</h4>
-          <p className="text-primary-fixed text-sm mb-6 leading-relaxed">Our infrastructure engineers are available 24/7 for managed VPS clients.</p>
+          <h4 className="text-xl font-bold mb-2">Precisa de Assistência Técnica?</h4>
+          <p className="text-primary-fixed text-sm mb-6 leading-relaxed">Nossos engenheiros de infraestrutura estão disponíveis 24/7 para clientes de VPS gerenciado.</p>
           <button 
             onClick={onOpenTicket}
             className="w-full bg-surface-container-lowest text-primary py-3 rounded-lg font-bold text-xs uppercase tracking-widest active:scale-95 transition-all"
           >
-            Open Ticket
+            Abrir Ticket
           </button>
         </div>
 
         <div className="bg-surface-container-low rounded-xl p-8">
           <h4 className="font-bold text-lg mb-6 flex items-center gap-2">
             <FileText className="text-secondary" size={20} />
-            Recent Activity
+            Atividade Recente
           </h4>
           <div className="space-y-6">
             {[
-              { title: 'Invoice #MON-4492 Paid', sub: 'Nov 14, 2024 • $149.00', active: true },
-              { title: 'Backup Completed', sub: 'Nov 13, 2024 • monolith-v1.com', active: false },
-              { title: 'System Upgrade', sub: 'Nov 10, 2024 • VPS Kernel 6.1', active: true },
+              { title: 'Fatura #MON-4492 Paga', sub: '14 de Nov, 2024 • R$ 149,00', active: true },
+              { title: 'Backup Concluído', sub: '13 de Nov, 2024 • monolith-v1.com', active: false },
+              { title: 'Atualização do Sistema', sub: '10 de Nov, 2024 • VPS Kernel 6.1', active: true },
             ].map((activity, i) => (
               <div key={i} className="flex gap-4">
                 <div className={`min-w-[4px] h-12 rounded-full ${activity.active ? 'bg-primary' : 'bg-outline-variant'}`}></div>
@@ -815,7 +815,7 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
             onClick={onViewActivity}
             className="mt-8 text-primary font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all"
           >
-            View All History <ArrowRight size={14} />
+            Ver Todo o Histórico <ArrowRight size={14} />
           </button>
         </div>
       </div>
@@ -825,21 +825,21 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
       <div className="flex items-center gap-4 text-sm font-medium">
         <span className="flex items-center gap-2 text-primary font-bold">
           <CheckCircle size={18} />
-          All Systems Operational
+          Todos os Sistemas Operacionais
         </span>
         <span className="hidden md:block w-1 h-1 bg-outline-variant rounded-full"></span>
-        <span className="text-on-surface-variant">Last checked: 2 minutes ago</span>
+        <span className="text-on-surface-variant">Última verificação: 2 minutos atrás</span>
       </div>
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold uppercase tracking-tighter">Uptime</span>
+          <span className="text-[10px] font-bold uppercase tracking-tighter">Tempo de Atividade</span>
           <span className="font-headline text-xl font-black">99.99%</span>
         </div>
         <button 
           onClick={onViewStatus}
           className="text-[10px] font-bold uppercase tracking-widest text-primary border-b-2 border-primary/20 hover:border-primary transition-all pb-1"
         >
-          Detailed Status
+          Status Detalhado
         </button>
       </div>
     </div>
@@ -851,25 +851,25 @@ const BillingPage = () => (
   <div className="space-y-12">
     <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
       <div className="lg:col-span-8 space-y-6">
-        <span className="text-[10px] text-primary tracking-widest font-bold uppercase block mb-2">Current Subscription</span>
+        <span className="text-[10px] text-primary tracking-widest font-bold uppercase block mb-2">Assinatura Atual</span>
         <div className="bg-surface-container-lowest rounded-xl p-8 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16"></div>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
               <h1 className="text-4xl font-extrabold text-on-surface tracking-tight font-headline">Enterprise Cloud Node</h1>
-              <p className="text-on-surface-variant mt-2 font-medium">Billed annually • Next renewal: Oct 12, 2024</p>
+              <p className="text-on-surface-variant mt-2 font-medium">Faturado anualmente • Próxima renovação: 12 de Out, 2024</p>
             </div>
             <div className="text-right">
-              <div className="text-3xl font-black text-primary font-headline">$1,240<span className="text-lg font-medium text-on-surface-variant">/yr</span></div>
+              <div className="text-3xl font-black text-primary font-headline">R$ 1.240<span className="text-lg font-medium text-on-surface-variant">/ano</span></div>
               <span className="inline-flex items-center px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold mt-2">
                 <span className="w-2 h-2 bg-primary rounded-full mr-2 animate-pulse"></span>
-                ACTIVE
+                ATIVO
               </span>
             </div>
           </div>
           <div className="mt-8 flex flex-wrap gap-4">
-            <button className="bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-3 rounded-lg font-bold text-xs shadow-lg hover:opacity-90 transition-all active:scale-95">Upgrade Plan</button>
-            <button className="bg-surface-container-highest text-on-surface px-6 py-3 rounded-lg font-bold text-xs hover:bg-surface-variant transition-all active:scale-95">Manage Add-ons</button>
+            <button className="bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-3 rounded-lg font-bold text-xs shadow-lg hover:opacity-90 transition-all active:scale-95">Upgrade de Plano</button>
+            <button className="bg-surface-container-highest text-on-surface px-6 py-3 rounded-lg font-bold text-xs hover:bg-surface-variant transition-all active:scale-95">Gerenciar Adicionais</button>
           </div>
         </div>
       </div>
@@ -877,23 +877,23 @@ const BillingPage = () => (
       <div className="lg:col-span-4 bg-error-container/40 rounded-xl p-8 backdrop-blur-sm relative border border-error/10">
         <div className="flex justify-between items-start mb-6">
           <AlertCircle className="text-error" size={32} />
-          <span className="text-error font-black font-headline text-2xl">Pending</span>
+          <span className="text-error font-black font-headline text-2xl">Pendente</span>
         </div>
-        <h3 className="text-xl font-bold text-on-error-container mb-2">Unpaid Invoice</h3>
-        <p className="text-on-error-container/80 text-sm mb-6 leading-relaxed">Invoice #MN-9042 for domain renewal is overdue by 3 days.</p>
-        <div className="text-2xl font-bold text-error mb-6">$24.99</div>
-        <button className="w-full bg-error text-on-error py-3 rounded-lg font-bold hover:bg-error/90 transition-all active:scale-95">Pay Now</button>
+        <h3 className="text-xl font-bold text-on-error-container mb-2">Fatura em Aberto</h3>
+        <p className="text-on-error-container/80 text-sm mb-6 leading-relaxed">Fatura #MN-9042 para renovação de domínio está atrasada há 3 dias.</p>
+        <div className="text-2xl font-bold text-error mb-6">R$ 24,99</div>
+        <button className="w-full bg-error text-on-error py-3 rounded-lg font-bold hover:bg-error/90 transition-all active:scale-95">Pagar Agora</button>
       </div>
     </section>
 
     <section className="grid grid-cols-1 lg:grid-cols-2 gap-12">
       <div className="space-y-6">
-        <h2 className="text-2xl font-extrabold font-headline tracking-tight">Payment Methods</h2>
+        <h2 className="text-2xl font-extrabold font-headline tracking-tight">Métodos de Pagamento</h2>
         <div className="bg-surface-container-low rounded-xl p-2 space-y-2">
           {[
-            { icon: <CreditCard size={20} />, title: '•••• •••• •••• 4242', sub: 'Visa • Expires 12/26', primary: true },
-            { icon: <Wallet size={20} />, title: 'billing@monolith.tech', sub: 'PayPal Connected' },
-            { icon: <QrCode size={20} />, title: 'Instant Transfer (PIX)', sub: 'Available in Brazil' },
+            { icon: <CreditCard size={20} />, title: '•••• •••• •••• 4242', sub: 'Visa • Expira em 12/26', primary: true },
+            { icon: <Wallet size={20} />, title: 'billing@monolith.tech', sub: 'PayPal Conectado' },
+            { icon: <QrCode size={20} />, title: 'Transferência Instantânea (PIX)', sub: 'Disponível no Brasil' },
           ].map((method, i) => (
             <div key={i} className="bg-surface-container-lowest p-5 rounded-lg flex items-center justify-between group cursor-pointer hover:bg-surface-bright transition-colors">
               <div className="flex items-center space-x-4">
@@ -905,26 +905,26 @@ const BillingPage = () => (
                   <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">{method.sub}</p>
                 </div>
               </div>
-              {method.primary && <span className="text-primary text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Primary</span>}
+              {method.primary && <span className="text-primary text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Principal</span>}
             </div>
           ))}
         </div>
         <button className="text-primary font-bold text-xs flex items-center space-x-2 hover:underline decoration-2 underline-offset-4">
           <Plus size={16} />
-          <span>Add New Method</span>
+          <span>Adicionar Novo Método</span>
         </button>
       </div>
 
       <div className="space-y-6">
         <div className="flex justify-between items-end">
-          <h2 className="text-2xl font-extrabold font-headline tracking-tight">Billing History</h2>
-          <button className="text-[10px] font-bold text-primary uppercase tracking-widest">Download All</button>
+          <h2 className="text-2xl font-extrabold font-headline tracking-tight">Histórico de Faturamento</h2>
+          <button className="text-[10px] font-bold text-primary uppercase tracking-widest">Baixar Tudo</button>
         </div>
         <div className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm">
           <table className="w-full text-left border-collapse">
             <thead className="bg-surface-container-low">
               <tr>
-                {['Invoice', 'Date', 'Amount', 'Status', ''].map(h => (
+                {['Fatura', 'Data', 'Valor', 'Status', ''].map(h => (
                   <th key={h} className="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">{h}</th>
                 ))}
               </tr>
@@ -934,9 +934,11 @@ const BillingPage = () => (
                 <tr key={invoice.id} className="hover:bg-surface-bright transition-colors">
                   <td className="px-6 py-5 font-bold text-sm text-on-surface">{invoice.id}</td>
                   <td className="px-6 py-5 text-sm text-on-surface-variant">{invoice.date}</td>
-                  <td className="px-6 py-5 font-bold text-sm">${invoice.amount.toLocaleString()}</td>
+                  <td className="px-6 py-5 font-bold text-sm">R$ {invoice.amount.toLocaleString()}</td>
                   <td className="px-6 py-5">
-                    <span className="text-[10px] font-black tracking-widest uppercase px-2 py-1 bg-primary/10 text-primary rounded">{invoice.status}</span>
+                    <span className="text-[10px] font-black tracking-widest uppercase px-2 py-1 bg-primary/10 text-primary rounded">
+                      {invoice.status}
+                    </span>
                   </td>
                   <td className="px-6 py-5 text-right">
                     <button className="text-on-surface-variant hover:text-primary transition-colors">
@@ -957,22 +959,22 @@ const BillingPage = () => (
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full -mr-48 -mb-48 blur-3xl"></div>
       </div>
       <div className="relative z-10 max-w-xl">
-        <h2 className="text-3xl font-black font-headline mb-4 leading-tight">Switch to biennial billing and save up to 25%</h2>
-        <p className="text-on-primary/80 font-medium">Extend your commitment and lock in our current infrastructure rates for the next 24 months.</p>
+        <h2 className="text-3xl font-black font-headline mb-4 leading-tight">Mude para o faturamento bienal e economize até 25%</h2>
+        <p className="text-on-primary/80 font-medium">Estenda seu compromisso e garanta nossas taxas de infraestrutura atuais pelos próximos 24 meses.</p>
       </div>
       <div className="relative z-10">
-        <button className="bg-surface-container-lowest text-primary px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:scale-105 transition-transform active:scale-95">Calculate Savings</button>
+        <button className="bg-surface-container-lowest text-primary px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:scale-105 transition-transform active:scale-95">Calcular Economia</button>
       </div>
     </section>
   </div>
 );
 
 const SupportPage = ({ onTicketClick }: { onTicketClick: (id: string) => void }) => {
-  const [filter, setFilter] = useState<'All' | 'Open' | 'Closed'>('All');
+  const [filter, setFilter] = useState<'Todos' | 'Abertos' | 'Fechados'>('Todos');
   const [search, setSearch] = useState('');
 
   const filteredTickets = MOCK_TICKETS.filter(ticket => {
-    const matchesFilter = filter === 'All' || ticket.status === filter || (filter === 'Open' && ticket.status === 'In Progress');
+    const matchesFilter = filter === 'Todos' || ticket.status === filter || (filter === 'Abertos' && (ticket.status === 'Aberto' || ticket.status === 'Em Andamento'));
     const matchesSearch = ticket.title.toLowerCase().includes(search.toLowerCase()) || ticket.id.toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
   });
@@ -980,21 +982,21 @@ const SupportPage = ({ onTicketClick }: { onTicketClick: (id: string) => void })
   return (
     <div className="space-y-12">
       <header className="max-w-3xl">
-        <span className="font-label text-xs tracking-widest uppercase text-on-surface-variant font-bold mb-4 block">Help Center</span>
-        <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Support Tickets</h1>
-        <p className="text-on-surface-variant text-lg leading-relaxed">Manage your infrastructure inquiries. Our engineers are monitoring the monolith around the clock.</p>
+        <span className="font-label text-xs tracking-widest uppercase text-on-surface-variant font-bold mb-4 block">Central de Ajuda</span>
+        <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Tickets de Suporte</h1>
+        <p className="text-on-surface-variant text-lg leading-relaxed">Gerencie suas consultas de infraestrutura. Nossos engenheiros estão monitorando o monólito 24 horas por dia.</p>
       </header>
 
       <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="md:col-span-2 bg-surface-container-low rounded-xl p-8 flex items-center justify-between overflow-hidden relative group">
           <div>
             <div className="text-4xl font-headline font-black text-primary mb-1">04</div>
-            <div className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Active Tickets</div>
+            <div className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Tickets Ativos</div>
           </div>
           <div className="h-16 w-px bg-outline-variant/20 hidden md:block"></div>
           <div>
             <div className="text-4xl font-headline font-black text-on-surface mb-1">12m</div>
-            <div className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Avg. Response</div>
+            <div className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Resposta Média</div>
           </div>
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors"></div>
         </div>
@@ -1004,13 +1006,13 @@ const SupportPage = ({ onTicketClick }: { onTicketClick: (id: string) => void })
             <div className="p-3 bg-primary/10 rounded-full text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
               <Zap size={24} />
             </div>
-            <span className="text-xs uppercase tracking-widest">Fast-Track</span>
+            <span className="text-xs uppercase tracking-widest">Via Rápida</span>
           </button>
           <button className="flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-primary to-primary-container text-on-primary p-6 rounded-xl font-bold active:scale-95 transition-all shadow-lg hover:shadow-primary/20 group">
             <div className="p-3 bg-white/20 rounded-full text-white">
               <Plus size={24} />
             </div>
-            <span className="text-xs uppercase tracking-widest">New Ticket</span>
+            <span className="text-xs uppercase tracking-widest">Novo Ticket</span>
           </button>
         </div>
       </section>
@@ -1020,7 +1022,7 @@ const SupportPage = ({ onTicketClick }: { onTicketClick: (id: string) => void })
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant" size={18} />
           <input 
             type="text" 
-            placeholder="Search tickets..." 
+            placeholder="Pesquisar tickets..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-surface-container-lowest border-none rounded-xl pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-primary transition-all"
@@ -1029,13 +1031,13 @@ const SupportPage = ({ onTicketClick }: { onTicketClick: (id: string) => void })
         
         <div className="flex flex-wrap items-center gap-6 w-full lg:w-auto">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mr-2">Filter:</span>
-            {['All', 'Open', 'Closed'].map((f) => (
+            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mr-2">Filtrar:</span>
+            {['Todos', 'Abertos', 'Fechados'].map((f) => (
               <button 
                 key={f}
                 onClick={() => setFilter(f as any)}
                 className={`px-4 py-2 rounded-lg text-xs font-bold border transition-all ${
-                  filter === f 
+                  filter === f
                     ? 'bg-primary text-on-primary border-primary shadow-sm' 
                     : 'bg-surface-container-lowest text-on-surface-variant border-outline-variant/10 hover:border-primary/30'
                 }`}
@@ -1048,9 +1050,9 @@ const SupportPage = ({ onTicketClick }: { onTicketClick: (id: string) => void })
           <div className="h-6 w-px bg-outline-variant/20 hidden sm:block"></div>
 
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mr-2">Sort by:</span>
-            <button className="px-4 py-2 bg-surface-container-lowest rounded-lg text-xs font-bold border border-outline-variant/10 hover:border-primary/30 transition-all text-primary border-primary/20">Latest</button>
-            <button className="px-4 py-2 bg-surface-container-lowest rounded-lg text-xs font-bold border border-outline-variant/10 hover:border-primary/30 transition-all text-on-surface-variant">Priority</button>
+            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mr-2">Ordenar por:</span>
+            <button className="px-4 py-2 bg-surface-container-lowest rounded-lg text-xs font-bold border border-outline-variant/10 hover:border-primary/30 transition-all text-primary border-primary/20">Mais Recentes</button>
+            <button className="px-4 py-2 bg-surface-container-lowest rounded-lg text-xs font-bold border border-outline-variant/10 hover:border-primary/30 transition-all text-on-surface-variant">Prioridade</button>
           </div>
         </div>
       </div>
@@ -1064,11 +1066,11 @@ const SupportPage = ({ onTicketClick }: { onTicketClick: (id: string) => void })
           >
             <div className="flex items-start gap-6">
               <div className="mt-1">
-                {ticket.status === 'Open' ? (
+                {ticket.status === 'Aberto' ? (
                   <span className="w-3 h-3 rounded-full bg-primary block relative">
                     <span className="absolute inset-0 w-3 h-3 rounded-full bg-primary animate-ping opacity-75"></span>
                   </span>
-                ) : ticket.status === 'In Progress' ? (
+                ) : ticket.status === 'Em Andamento' ? (
                   <span className="w-3 h-3 rounded-full bg-secondary block"></span>
                 ) : (
                   <CheckCircle className="text-outline" size={20} />
@@ -1078,23 +1080,23 @@ const SupportPage = ({ onTicketClick }: { onTicketClick: (id: string) => void })
                 <div className="flex items-center gap-3 mb-2">
                   <h3 className="text-xl font-bold text-on-surface group-hover:text-primary transition-colors">{ticket.title}</h3>
                   <span className={`px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                    ticket.priority === 'High' ? 'bg-error-container text-on-error-container' : 
-                    ticket.priority === 'Medium' ? 'bg-secondary-container text-on-secondary-container' : 
+                    ticket.priority === 'Alta' ? 'bg-error-container text-on-error-container' : 
+                    ticket.priority === 'Média' ? 'bg-secondary-container text-on-secondary-container' : 
                     'bg-outline-variant/30 text-on-surface-variant'
                   }`}>
-                    {ticket.priority} Priority
+                    Prioridade {ticket.priority}
                   </span>
                 </div>
                 <div className="flex items-center gap-4 text-on-surface-variant text-sm">
                   <span className="flex items-center gap-1 font-medium"><Tag size={14} /> {ticket.id}</span>
-                  <span className="flex items-center gap-1"><History size={14} /> Updated {ticket.updatedAt}</span>
+                  <span className="flex items-center gap-1"><History size={14} /> Atualizado {ticket.updatedAt}</span>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-6">
               <div className="hidden md:flex flex-col items-end">
                 <span className="text-[10px] text-on-surface-variant font-label uppercase tracking-widest mb-1">Status</span>
-                <span className={`font-bold ${ticket.status === 'Open' ? 'text-primary' : ticket.status === 'In Progress' ? 'text-secondary' : 'text-on-surface-variant'}`}>
+                <span className={`font-bold ${ticket.status === 'Aberto' ? 'text-primary' : ticket.status === 'Em Andamento' ? 'text-secondary' : 'text-on-surface-variant'}`}>
                   {ticket.status}
                 </span>
               </div>
@@ -1106,8 +1108,8 @@ const SupportPage = ({ onTicketClick }: { onTicketClick: (id: string) => void })
             <div className="w-16 h-16 bg-surface-container-highest rounded-full flex items-center justify-center mx-auto mb-4 text-on-surface-variant">
               <Search size={32} />
             </div>
-            <h3 className="text-xl font-bold mb-2">No tickets found</h3>
-            <p className="text-on-surface-variant">Try adjusting your filters or search query.</p>
+            <h3 className="text-xl font-bold mb-2">Nenhum ticket encontrado</h3>
+            <p className="text-on-surface-variant">Tente ajustar seus filtros ou consulta de pesquisa.</p>
           </div>
         )}
       </div>
@@ -1128,7 +1130,7 @@ const TicketDetailPage = ({ ticketId, onBack }: { ticketId: string, onBack: () =
         className="flex items-center gap-2 text-on-surface-variant hover:text-primary font-bold transition-colors group"
       >
         <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-        <span>Back to Tickets</span>
+        <span>Voltar para Tickets</span>
       </button>
 
       <div className="bg-surface-container-lowest rounded-2xl p-8 shadow-sm border border-outline-variant/10">
@@ -1137,26 +1139,26 @@ const TicketDetailPage = ({ ticketId, onBack }: { ticketId: string, onBack: () =
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-3xl font-black font-headline text-on-surface">{ticket.title}</h1>
               <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                ticket.priority === 'High' ? 'bg-error-container text-on-error-container' : 
-                ticket.priority === 'Medium' ? 'bg-secondary-container text-on-secondary-container' : 
+                ticket.priority === 'Alta' ? 'bg-error-container text-on-error-container' : 
+                ticket.priority === 'Média' ? 'bg-secondary-container text-on-secondary-container' : 
                 'bg-outline-variant/30 text-on-surface-variant'
               }`}>
-                {ticket.priority} Priority
+                Prioridade {ticket.priority}
               </span>
             </div>
             <div className="flex items-center gap-4 text-on-surface-variant text-sm">
               <span className="font-bold">{ticket.id}</span>
               <span>•</span>
-              <span className="flex items-center gap-1"><History size={14} /> Last updated {ticket.updatedAt}</span>
+              <span className="flex items-center gap-1"><History size={14} /> Última atualização {ticket.updatedAt}</span>
               <span>•</span>
               <span className={`font-bold ${ticket.status === 'Open' ? 'text-primary' : ticket.status === 'In Progress' ? 'text-secondary' : 'text-on-surface-variant'}`}>
-                {ticket.status}
+                {ticket.status === 'Open' ? 'Aberto' : ticket.status === 'In Progress' ? 'Em Andamento' : 'Fechado'}
               </span>
             </div>
           </div>
           <div className="flex gap-2">
-            <button className="bg-surface-container-highest text-on-surface px-6 py-3 rounded-lg font-bold hover:bg-surface-container-high transition-colors">Close Ticket</button>
-            <button className="bg-primary text-on-primary px-6 py-3 rounded-lg font-bold shadow-lg hover:scale-105 transition-transform">Reply</button>
+            <button className="bg-surface-container-highest text-on-surface px-6 py-3 rounded-lg font-bold hover:bg-surface-container-high transition-colors">Fechar Ticket</button>
+            <button className="bg-primary text-on-primary px-6 py-3 rounded-lg font-bold shadow-lg hover:scale-105 transition-transform">Responder</button>
           </div>
         </div>
 
@@ -1169,7 +1171,12 @@ const TicketDetailPage = ({ ticketId, onBack }: { ticketId: string, onBack: () =
                   : 'bg-surface-container-low text-on-surface rounded-tl-none border border-outline-variant/10'
               }`}>
                 <div className="flex items-center justify-between gap-8 mb-3">
-                  <span className="font-bold text-sm">{resp.sender}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm">{resp.sender}</span>
+                    <span className={`text-[10px] uppercase tracking-widest opacity-70 ${resp.role === 'user' ? 'text-on-primary' : 'text-on-surface-variant'}`}>
+                      {resp.role === 'user' ? 'Usuário' : 'Suporte'}
+                    </span>
+                  </div>
                   <span className={`text-[10px] opacity-70 ${resp.role === 'user' ? 'text-on-primary' : 'text-on-surface-variant'}`}>{resp.time}</span>
                 </div>
                 <p className="leading-relaxed">{resp.message}</p>
@@ -1184,15 +1191,15 @@ const TicketDetailPage = ({ ticketId, onBack }: { ticketId: string, onBack: () =
             <span className="font-bold">Alex Sterling</span>
           </div>
           <textarea 
-            placeholder="Type your message here..."
+            placeholder="Digite sua mensagem aqui..."
             className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-6 min-h-[150px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all mb-4"
           />
           <div className="flex justify-between items-center">
             <button className="flex items-center gap-2 text-on-surface-variant hover:text-primary font-bold transition-colors">
               <Plus size={18} />
-              <span>Attach Files</span>
+              <span>Anexar Arquivos</span>
             </button>
-            <button className="bg-primary text-on-primary px-10 py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-lg hover:scale-105 transition-transform active:scale-95">Send Reply</button>
+            <button className="bg-primary text-on-primary px-10 py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-lg hover:scale-105 transition-transform active:scale-95">Enviar Resposta</button>
           </div>
         </div>
       </div>
@@ -1204,16 +1211,16 @@ const StatusPage = () => (
   <div className="space-y-12">
     <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
       <div className="max-w-2xl">
-        <span className="font-label text-xs tracking-widest uppercase text-on-surface-variant font-bold mb-4 block">System Health</span>
-        <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Service Status</h1>
+        <span className="font-label text-xs tracking-widest uppercase text-on-surface-variant font-bold mb-4 block">Saúde do Sistema</span>
+        <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Status do Serviço</h1>
         <div className="flex items-center gap-3 bg-primary/5 border border-primary/10 p-4 rounded-xl w-fit">
           <CheckCircle className="text-primary" size={24} />
-          <span className="font-bold text-primary">All Systems Operational</span>
+          <span className="font-bold text-primary">Todos os Sistemas Operacionais</span>
         </div>
       </div>
       <button className="flex items-center gap-2 bg-surface-container-highest text-on-surface px-6 py-3 rounded-lg font-bold active:scale-95 transition-all">
         <RefreshCw size={18} />
-        <span>Refresh Status</span>
+        <span>Atualizar Status</span>
       </button>
     </header>
 
@@ -1227,16 +1234,16 @@ const StatusPage = () => (
               service.status === 'degraded' ? 'bg-secondary-container text-on-secondary-container' : 
               'bg-error-container text-on-error-container'
             }`}>
-              {service.status}
+              {service.status === 'operational' ? 'Operacional' : service.status === 'degraded' ? 'Degradado' : 'Interrupção'}
             </span>
           </div>
           <div className="space-y-4">
             <div className="flex justify-between text-xs">
-              <span className="text-on-surface-variant font-medium">Uptime (90d)</span>
+              <span className="text-on-surface-variant font-medium">Tempo de Atividade (90d)</span>
               <span className="font-bold">{service.uptime}</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-on-surface-variant font-medium">Latency</span>
+              <span className="text-on-surface-variant font-medium">Latência</span>
               <span className="font-bold">{service.latency}</span>
             </div>
             <div className="flex gap-1 h-8 items-end">
@@ -1253,7 +1260,7 @@ const StatusPage = () => (
     </div>
 
     <section className="bg-surface-container-low rounded-xl p-8">
-      <h2 className="text-2xl font-bold font-headline mb-6">Recent Incidents</h2>
+      <h2 className="text-2xl font-bold font-headline mb-6">Incidentes Recentes</h2>
       <div className="space-y-6">
         <div className="flex gap-6">
           <div className="flex flex-col items-center">
@@ -1263,9 +1270,9 @@ const StatusPage = () => (
             <div className="w-px h-full bg-outline-variant/20 mt-2"></div>
           </div>
           <div className="pb-8">
-            <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">March 18, 2024</p>
-            <h4 className="font-bold text-lg mb-2">Partial Outage: US-EAST Compute Nodes</h4>
-            <p className="text-on-surface-variant text-sm leading-relaxed">We experienced a brief period of increased latency and intermittent connectivity issues for compute nodes in the US-EAST region. The issue was traced back to a backbone provider and has been resolved.</p>
+            <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">18 de Março de 2024</p>
+            <h4 className="font-bold text-lg mb-2">Interrupção Parcial: Nós de Computação US-EAST</h4>
+            <p className="text-on-surface-variant text-sm leading-relaxed">Experimentamos um breve período de aumento de latência e problemas de conectividade intermitente para nós de computação na região US-EAST. O problema foi rastreado até um provedor de backbone e foi resolvido.</p>
           </div>
         </div>
         <div className="flex gap-6">
@@ -1275,9 +1282,9 @@ const StatusPage = () => (
             </div>
           </div>
           <div>
-            <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">March 15, 2024</p>
-            <h4 className="font-bold text-lg mb-2">Scheduled Maintenance: Database Migration</h4>
-            <p className="text-on-surface-variant text-sm leading-relaxed">Successfully migrated primary database clusters to new NVMe-backed infrastructure. No downtime was observed during the transition.</p>
+            <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">15 de Março de 2024</p>
+            <h4 className="font-bold text-lg mb-2">Manutenção Agendada: Migração de Banco de Dados</h4>
+            <p className="text-on-surface-variant text-sm leading-relaxed">Migração bem-sucedida de clusters de banco de dados primários para a nova infraestrutura baseada em NVMe. Nenhuma interrupção foi observada durante a transição.</p>
           </div>
         </div>
       </div>
@@ -1285,79 +1292,121 @@ const StatusPage = () => (
   </div>
 );
 
-const ActivityLogPage = () => (
-  <div className="space-y-12">
-    <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-      <div className="max-w-2xl">
-        <span className="font-label text-xs tracking-widest uppercase text-on-surface-variant font-bold mb-4 block">Audit Trail</span>
-        <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Activity Log</h1>
-        <p className="text-on-surface-variant text-lg leading-relaxed">A detailed history of all actions performed on your Monolith account and infrastructure.</p>
-      </div>
-      <div className="flex items-center gap-4 bg-surface-container-low p-2 rounded-xl border border-outline-variant/10">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search logs..." 
-            className="bg-surface-container-lowest border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary w-64"
-          />
+const ActivityLogPage = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Toda Atividade');
+
+  const categories = ['Toda Atividade', 'Infraestrutura', 'Segurança', 'Faturamento', 'Conta'];
+
+  const filteredLogs = MOCK_ACTIVITY.filter(log => {
+    const matchesSearch = log.event.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          log.details.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const categoryMap: Record<string, string> = {
+      'Infraestrutura': 'infrastructure',
+      'Segurança': 'security',
+      'Faturamento': 'billing',
+      'Conta': 'account'
+    };
+
+    const matchesCategory = selectedCategory === 'Toda Atividade' || log.category === categoryMap[selectedCategory];
+
+    return matchesSearch && matchesCategory;
+  });
+
+  return (
+    <div className="space-y-12">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+        <div className="max-w-2xl">
+          <span className="font-label text-xs tracking-widest uppercase text-on-surface-variant font-bold mb-4 block">Trilha de Auditoria</span>
+          <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Log de Atividades</h1>
+          <p className="text-on-surface-variant text-lg leading-relaxed">Um histórico detalhado de todas as ações realizadas em sua conta e infraestrutura Monolith.</p>
         </div>
-        <button className="bg-primary text-on-primary p-2 rounded-lg active:scale-95 transition-all">
-          <Download size={20} />
-        </button>
-      </div>
-    </header>
-
-    <div className="flex flex-wrap gap-2 mb-8">
-      {['All Activity', 'Infrastructure', 'Security', 'Billing', 'Account'].map((cat, i) => (
-        <button 
-          key={i} 
-          className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
-            i === 0 ? 'bg-primary text-on-primary shadow-md' : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-container-low'
-          }`}
-        >
-          {cat}
-        </button>
-      ))}
-    </div>
-
-    <div className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm">
-      <div className="divide-y divide-surface-container-low">
-        {MOCK_ACTIVITY.map((log) => (
-          <div key={log.id} className="p-6 hover:bg-surface-bright transition-colors flex flex-col md:flex-row gap-6 items-start">
-            <div className="flex items-center gap-4 min-w-[200px]">
-              <div className={`p-3 rounded-xl ${
-                log.category === 'infrastructure' ? 'bg-primary/10 text-primary' : 
-                log.category === 'security' ? 'bg-error-container text-on-error-container' : 
-                log.category === 'billing' ? 'bg-secondary-container text-on-secondary-container' : 
-                'bg-surface-container-highest text-on-surface-variant'
-              }`}>
-                {log.category === 'infrastructure' ? <Database size={20} /> : 
-                 log.category === 'security' ? <Lock size={20} /> : 
-                 log.category === 'billing' ? <CreditCard size={20} /> : 
-                 <UserCircle size={20} />}
-              </div>
-              <div>
-                <p className="font-bold text-sm">{log.event}</p>
-                <p className="text-xs text-on-surface-variant">{log.timestamp}</p>
-              </div>
-            </div>
-            <div className="flex-grow">
-              <p className="text-sm text-on-surface-variant leading-relaxed">{log.details}</p>
-            </div>
-            <div className="flex items-center gap-2 bg-surface-container-low px-3 py-1 rounded-full">
-              <UserCircle size={14} className="text-on-surface-variant" />
-              <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">{log.user}</span>
-            </div>
+        <div className="flex items-center gap-4 bg-surface-container-low p-2 rounded-xl border border-outline-variant/10">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" size={18} />
+            <input 
+              type="text" 
+              placeholder="Pesquisar logs..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-surface-container-lowest border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary w-64"
+            />
           </div>
+          <button className="bg-primary text-on-primary p-2 rounded-lg active:scale-95 transition-all">
+            <Download size={20} />
+          </button>
+        </div>
+      </header>
+
+      <div className="flex flex-wrap gap-2 mb-8">
+        {categories.map((cat) => (
+          <button 
+            key={cat} 
+            onClick={() => setSelectedCategory(cat)}
+            className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
+              selectedCategory === cat ? 'bg-primary text-on-primary shadow-md' : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-container-low'
+            }`}
+          >
+            {cat}
+          </button>
         ))}
       </div>
-      <div className="p-6 bg-surface-container-low text-center">
-        <button className="text-primary font-bold text-xs uppercase tracking-widest hover:underline">Load More Activity</button>
+
+      <div className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm">
+        <div className="divide-y divide-surface-container-low">
+          {filteredLogs.length > 0 ? (
+            filteredLogs.map((log) => (
+              <div key={log.id} className="p-6 hover:bg-surface-bright transition-colors flex flex-col md:flex-row gap-6 items-start">
+                <div className="flex items-center gap-4 min-w-[200px]">
+                  <div className={`p-3 rounded-xl ${
+                    log.category === 'infrastructure' ? 'bg-primary/10 text-primary' : 
+                    log.category === 'security' ? 'bg-error-container text-on-error-container' : 
+                    log.category === 'billing' ? 'bg-secondary-container text-on-secondary-container' : 
+                    'bg-surface-container-highest text-on-surface-variant'
+                  }`}>
+                    {log.category === 'infrastructure' ? <Database size={20} /> : 
+                     log.category === 'security' ? <Lock size={20} /> : 
+                     log.category === 'billing' ? <CreditCard size={20} /> : 
+                     <UserCircle size={20} />}
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm">{log.event}</p>
+                    <p className="text-xs text-on-surface-variant">{log.timestamp}</p>
+                  </div>
+                </div>
+                <div className="flex-grow">
+                  <p className="text-sm text-on-surface-variant leading-relaxed">{log.details}</p>
+                </div>
+                <div className="flex items-center gap-2 bg-surface-container-low px-3 py-1 rounded-full">
+                  <Tag size={12} className="text-primary" />
+                  <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
+                    {log.category === 'infrastructure' ? 'Infraestrutura' : 
+                     log.category === 'security' ? 'Segurança' : 
+                     log.category === 'billing' ? 'Faturamento' : 'Conta'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 bg-surface-container-low px-3 py-1 rounded-full">
+                  <UserCircle size={14} className="text-on-surface-variant" />
+                  <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">{log.user}</span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-20 text-center text-on-surface-variant">
+              <History size={48} className="mx-auto mb-4 opacity-20" />
+              <p className="font-bold">Nenhum log encontrado</p>
+              <p className="text-sm">Tente ajustar sua pesquisa ou filtros.</p>
+            </div>
+          )}
+        </div>
+        <div className="p-6 bg-surface-container-low text-center">
+          <button className="text-primary font-bold text-xs uppercase tracking-widest hover:underline">Carregar Mais Atividades</button>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const ProfilePage = () => {
   const [showCurrentPass, setShowCurrentPass] = useState(false);
@@ -1372,9 +1421,9 @@ const ProfilePage = () => {
     <div className="space-y-12 max-w-6xl mx-auto">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
         <div className="max-w-2xl">
-          <span className="font-label text-xs tracking-widest uppercase text-primary font-bold mb-4 block">Account Settings</span>
-          <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">User Profile</h1>
-          <p className="text-on-surface-variant text-lg leading-relaxed">Manage your personal information, security preferences, and account access.</p>
+          <span className="font-label text-xs tracking-widest uppercase text-primary font-bold mb-4 block">Configurações da Conta</span>
+          <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Perfil do Usuário</h1>
+          <p className="text-on-surface-variant text-lg leading-relaxed">Gerencie suas informações pessoais, preferências de segurança e acesso à conta.</p>
         </div>
         <div className="flex items-center gap-4 bg-surface-container-low p-4 rounded-2xl border border-outline-variant/10">
           <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -1382,7 +1431,7 @@ const ProfilePage = () => {
           </div>
           <div>
             <h3 className="font-bold text-lg">Alex Sterling</h3>
-            <p className="text-xs text-on-surface-variant font-medium uppercase tracking-widest">Premium Member</p>
+            <p className="text-xs text-on-surface-variant font-medium uppercase tracking-widest">Membro Premium</p>
           </div>
         </div>
       </header>
@@ -1393,19 +1442,19 @@ const ProfilePage = () => {
           <section className="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/10 shadow-sm">
             <h2 className="text-xl font-bold font-headline mb-8 flex items-center gap-3">
               <UserCircle className="text-primary" size={24} />
-              Personal Information
+              Informações Pessoais
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Full Name</label>
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Nome Completo</label>
                 <input type="text" defaultValue="Alex Sterling" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Email Address</label>
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Endereço de E-mail</label>
                 <input type="email" defaultValue="alex@sterling.com" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Phone Number</label>
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Número de Telefone</label>
                 <input type="tel" defaultValue="+1 (555) 123-4567" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
               </div>
               <div className="space-y-2">
@@ -1502,20 +1551,20 @@ const ProfilePage = () => {
                 Dados Gerais
               </button>
               <button className="px-8 py-3 bg-primary text-on-primary rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-primary/20">
-                Save Changes
+                Salvar Alterações
               </button>
             </div>
           </section>
 
-          {/* Password Management */}
+          {/* Gerenciamento de Senha */}
           <section className="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/10 shadow-sm">
             <h2 className="text-xl font-bold font-headline mb-8 flex items-center gap-3">
               <Key className="text-secondary" size={24} />
-              Security & Password
+              Segurança e Senha
             </h2>
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Current Password</label>
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Senha Atual</label>
                 <div className="relative">
                   <input 
                     type={showCurrentPass ? "text" : "password"} 
@@ -1532,11 +1581,11 @@ const ProfilePage = () => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">New Password</label>
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Nova Senha</label>
                   <div className="relative">
                     <input 
                       type={showNewPass ? "text" : "password"} 
-                      placeholder="Enter new password" 
+                      placeholder="Digite a nova senha" 
                       className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all pr-12" 
                     />
                     <button 
@@ -1548,17 +1597,17 @@ const ProfilePage = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Confirm New Password</label>
-                  <input type="password" placeholder="Confirm new password" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Confirmar Nova Senha</label>
+                  <input type="password" placeholder="Confirme a nova senha" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
                 </div>
               </div>
               
               <div className="flex flex-wrap gap-4 pt-4">
                 <button className="px-6 py-3 bg-primary text-on-primary rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-primary/20">
-                  Update Password
+                  Atualizar Senha
                 </button>
                 <button className="px-6 py-3 bg-surface-container-highest text-on-surface rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all">
-                  Recover Password
+                  Recuperar Senha
                 </button>
               </div>
             </div>
@@ -1566,24 +1615,24 @@ const ProfilePage = () => {
         </div>
 
         <div className="space-y-8">
-          {/* Security Status */}
+          {/* Saúde da Segurança */}
           <section className="bg-surface-container-low p-8 rounded-2xl border border-outline-variant/10">
             <h2 className="text-lg font-bold font-headline mb-6 flex items-center gap-3">
               <ShieldCheck className="text-primary" size={20} />
-              Security Health
+              Saúde da Segurança
             </h2>
             <div className="space-y-6">
               <div className="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl border border-primary/20">
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-                  <span className="text-sm font-bold">2FA Enabled</span>
+                  <span className="text-sm font-bold">2FA Ativado</span>
                 </div>
-                <button className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">Manage</button>
+                <button className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">Gerenciar</button>
               </div>
               
               <div className="space-y-4">
                 <div className="flex justify-between text-xs">
-                  <span className="text-on-surface-variant font-medium">Security Score</span>
+                  <span className="text-on-surface-variant font-medium">Pontuação de Segurança</span>
                   <span className="font-bold text-primary">92/100</span>
                 </div>
                 <div className="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
@@ -1593,7 +1642,7 @@ const ProfilePage = () => {
 
               <button className="w-full py-4 bg-surface-container-highest text-on-surface font-bold rounded-xl text-xs uppercase tracking-widest hover:bg-primary hover:text-on-primary transition-all active:scale-95 flex items-center justify-center gap-2">
                 <Settings size={16} />
-                Advanced Security
+                Segurança Avançada
               </button>
             </div>
           </section>
@@ -1633,19 +1682,19 @@ const ProjectsPage = () => (
   <div className="space-y-12">
     <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
       <div className="max-w-2xl">
-        <span className="font-label text-xs tracking-widest uppercase text-on-surface-variant font-bold mb-4 block">Collaboration</span>
-        <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Project Management</h1>
-        <p className="text-on-surface-variant text-lg leading-relaxed">Coordinate infrastructure deployments and security audits with your team.</p>
+        <span className="font-label text-xs tracking-widest uppercase text-on-surface-variant font-bold mb-4 block">Colaboração</span>
+        <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Gerenciamento de Projetos</h1>
+        <p className="text-on-surface-variant text-lg leading-relaxed">Coordene implantações de infraestrutura e auditorias de segurança com sua equipe.</p>
       </div>
       <button className="flex items-center gap-2 bg-primary text-on-primary px-8 py-4 rounded-xl font-bold active:scale-95 transition-all shadow-lg">
         <Plus size={20} />
-        <span>New Project</span>
+        <span>Novo Projeto</span>
       </button>
     </header>
 
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-1 space-y-6">
-        <h2 className="text-xl font-bold font-headline mb-4">Active Projects</h2>
+        <h2 className="text-xl font-bold font-headline mb-4">Projetos Ativos</h2>
         <div className="space-y-4">
           {MOCK_PROJECTS.map(project => (
             <div key={project.id} className="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/10 hover:border-primary/30 transition-all cursor-pointer group">
@@ -1662,7 +1711,7 @@ const ProjectsPage = () => (
               
               <div className="space-y-2 mb-6">
                 <div className="flex justify-between text-xs font-bold">
-                  <span className="text-on-surface-variant uppercase tracking-widest">Progress</span>
+                  <span className="text-on-surface-variant uppercase tracking-widest">Progresso</span>
                   <span className="text-primary">{project.progress}%</span>
                 </div>
                 <div className="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
@@ -1695,7 +1744,7 @@ const ProjectsPage = () => (
 
       <div className="lg:col-span-2 space-y-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold font-headline">Tasks: Infrastructure Migration</h2>
+          <h2 className="text-xl font-bold font-headline">Tarefas: Migração de Infraestrutura</h2>
           <div className="flex items-center gap-2">
             <button className="p-2 bg-surface-container-low rounded-lg text-on-surface-variant hover:text-primary transition-colors">
               <Filter size={18} />
@@ -1726,7 +1775,7 @@ const ProjectsPage = () => (
                         task.priority === 'medium' ? 'bg-secondary-container text-on-secondary-container' : 
                         'bg-surface-container-highest text-on-surface-variant'
                       }`}>
-                        {task.priority}
+                        {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
                       </span>
                       <span className="flex items-center gap-1 text-on-surface-variant font-medium">
                         <Calendar size={12} /> {task.dueDate}
@@ -1743,7 +1792,7 @@ const ProjectsPage = () => (
                     task.status === 'in-progress' ? 'bg-secondary-container text-on-secondary-container' : 
                     'bg-surface-container-highest text-on-surface-variant'
                   }`}>
-                    {task.status.replace('-', ' ')}
+                    {task.status === 'done' ? 'Concluído' : task.status === 'in-progress' ? 'Em Andamento' : task.status === 'review' ? 'Revisão' : 'A Fazer'}
                   </span>
                   <button className="text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">
                     <MoreVertical size={18} />
@@ -1753,17 +1802,17 @@ const ProjectsPage = () => (
             ))}
           </div>
           <button className="w-full p-4 bg-surface-container-low text-primary font-bold text-xs uppercase tracking-widest hover:bg-surface-container-high transition-colors flex items-center justify-center gap-2">
-            <Plus size={16} /> Add Task
+            <Plus size={16} /> Adicionar Tarefa
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
             <h4 className="font-bold mb-4 flex items-center gap-2">
-              <Users size={18} className="text-primary" /> Team Members
+              <Users size={18} className="text-primary" /> Membros da Equipe
             </h4>
             <div className="space-y-4">
-              {['Alex Sterling (Lead)', 'Sarah K.', 'Mike R.', 'John D.'].map((member, i) => (
+              {['Alex Sterling (Líder)', 'Sarah K.', 'Mike R.', 'John D.'].map((member, i) => (
                 <div key={i} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center">
@@ -1778,12 +1827,12 @@ const ProjectsPage = () => (
           </div>
           <div className="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
             <h4 className="font-bold mb-4 flex items-center gap-2">
-              <Activity size={18} className="text-secondary" /> Recent Updates
+              <Activity size={18} className="text-secondary" /> Atualizações Recentes
             </h4>
             <div className="space-y-4">
               {[
-                { user: 'Alex S.', action: 'completed', target: 'Database snapshot', time: '2h ago' },
-                { user: 'Sarah K.', action: 'updated', target: 'Network latency', time: '4h ago' },
+                { user: 'Alex S.', action: 'concluiu', target: 'Snapshot do banco de dados', time: '2h atrás' },
+                { user: 'Sarah K.', action: 'atualizou', target: 'Latência de rede', time: '4h atrás' },
               ].map((update, i) => (
                 <div key={i} className="text-xs">
                   <p className="text-on-surface mb-1">
@@ -1804,7 +1853,7 @@ const ServiceManagePage = ({ serviceId, onBack }: { serviceId: string, onBack: (
   const service = MOCK_SERVICES.find(s => s.id === serviceId);
   const [showPassword, setShowPassword] = useState(false);
 
-  if (!service) return <div>Service not found</div>;
+  if (!service) return <div className="p-20 text-center font-bold text-xl">Serviço não encontrado</div>;
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -1822,7 +1871,7 @@ const ServiceManagePage = ({ serviceId, onBack }: { serviceId: string, onBack: (
             <ArrowLeft size={24} />
           </button>
           <div>
-            <span className="font-label text-xs tracking-widest uppercase text-primary font-bold mb-1 block">Management Panel</span>
+            <span className="font-label text-xs tracking-widest uppercase text-primary font-bold mb-1 block">Painel de Gerenciamento</span>
             <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface">{service.name}</h1>
           </div>
         </div>
@@ -1830,23 +1879,23 @@ const ServiceManagePage = ({ serviceId, onBack }: { serviceId: string, onBack: (
           <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${
             service.status === 'active' ? 'bg-primary/10 text-primary' : 'bg-error-container text-on-error-container'
           }`}>
-            {service.status}
+            {service.status === 'active' ? 'Ativo' : service.status === 'suspended' ? 'Suspenso' : 'Pendente'}
           </span>
           <span className="text-on-surface-variant font-medium text-sm">{service.host}</span>
         </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Access Credentials */}
+        {/* Credenciais de Acesso */}
         <div className="lg:col-span-2 space-y-8">
           <div className="bg-surface-container-low rounded-2xl p-8 border border-outline-variant/10">
             <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
               <Lock className="text-primary" size={24} />
-              Access Credentials
+              Credenciais de Acesso
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Username</label>
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Usuário</label>
                 <div className="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl border border-outline-variant/5">
                   <span className="font-mono font-bold text-primary">{service.accessInfo.username}</span>
                   <button onClick={() => copyToClipboard(service.accessInfo.username)} className="text-on-surface-variant hover:text-primary transition-colors">
@@ -1855,7 +1904,7 @@ const ServiceManagePage = ({ serviceId, onBack }: { serviceId: string, onBack: (
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Password</label>
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Senha</label>
                 <div className="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl border border-outline-variant/5">
                   <span className="font-mono font-bold text-primary">
                     {showPassword ? 'm0n0l1th_P@ss_2024' : '••••••••••••'}
@@ -1873,17 +1922,17 @@ const ServiceManagePage = ({ serviceId, onBack }: { serviceId: string, onBack: (
             </div>
           </div>
 
-          {/* Network & DNS */}
+          {/* Rede e DNS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="bg-surface-container-low rounded-2xl p-8 border border-outline-variant/10">
               <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
                 <Globe className="text-secondary" size={24} />
-                Network Information
+                Informações de Rede
               </h3>
               <div className="space-y-6">
                 <div className="flex justify-between items-center p-4 bg-surface-container-lowest rounded-xl">
                   <div>
-                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Main IP Address</p>
+                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Endereço IP Principal</p>
                     <p className="font-mono font-bold text-primary">{service.accessInfo.mainIp}</p>
                   </div>
                   <button onClick={() => copyToClipboard(service.accessInfo.mainIp)} className="text-on-surface-variant hover:text-primary">
@@ -1892,7 +1941,7 @@ const ServiceManagePage = ({ serviceId, onBack }: { serviceId: string, onBack: (
                 </div>
                 {service.accessInfo.additionalIps && (
                   <div className="p-4 bg-surface-container-lowest rounded-xl">
-                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-3">Additional IPs</p>
+                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-3">IPs Adicionais</p>
                     <div className="space-y-2">
                       {service.accessInfo.additionalIps.map(ip => (
                         <div key={ip} className="flex justify-between items-center">
@@ -1911,7 +1960,7 @@ const ServiceManagePage = ({ serviceId, onBack }: { serviceId: string, onBack: (
             <div className="bg-surface-container-low rounded-2xl p-8 border border-outline-variant/10">
               <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
                 <Database className="text-primary" size={24} />
-                DNS Nameservers
+                Servidores de Nomes DNS
               </h3>
               <div className="space-y-4">
                 {service.accessInfo.nameservers.map((ns, i) => (
@@ -1930,12 +1979,12 @@ const ServiceManagePage = ({ serviceId, onBack }: { serviceId: string, onBack: (
           </div>
         </div>
 
-        {/* Sidebar: Control Panels & Specs */}
+        {/* Sidebar: Painéis de Controle e Especificações */}
         <div className="space-y-8">
           <div className="bg-primary rounded-2xl p-8 text-on-primary shadow-lg shadow-primary/20">
             <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
               <Terminal size={24} />
-              Control Panels
+              Painéis de Controle
             </h3>
             <div className="space-y-4">
               {service.accessInfo.cpanelUrl && (
@@ -1947,7 +1996,7 @@ const ServiceManagePage = ({ serviceId, onBack }: { serviceId: string, onBack: (
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center font-black text-xs">cP</div>
-                    <span className="font-bold">cPanel Login</span>
+                    <span className="font-bold">Login cPanel</span>
                   </div>
                   <ExternalLink size={18} className="opacity-50 group-hover:opacity-100 transition-opacity" />
                 </a>
@@ -1967,7 +2016,7 @@ const ServiceManagePage = ({ serviceId, onBack }: { serviceId: string, onBack: (
                 </a>
               )}
               <button className="w-full mt-4 py-3 bg-surface-container-lowest text-primary rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform">
-                Webmail Access
+                Acesso ao Webmail
               </button>
             </div>
           </div>
@@ -1975,12 +2024,14 @@ const ServiceManagePage = ({ serviceId, onBack }: { serviceId: string, onBack: (
           <div className="bg-surface-container-low rounded-2xl p-8 border border-outline-variant/10">
             <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
               <Info className="text-secondary" size={24} />
-              Service Specs
+              Especificações do Serviço
             </h3>
             <div className="space-y-4">
               {Object.entries(service.accessInfo.specs).map(([key, value]) => (
                 <div key={key} className="flex justify-between items-center py-3 border-b border-outline-variant/10 last:border-0">
-                  <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">{key}</span>
+                  <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                    {key === 'cpu' ? 'CPU' : key === 'ram' ? 'RAM' : key === 'storage' ? 'Armazenamento' : key === 'bandwidth' ? 'Largura de Banda' : key === 'os' ? 'SO' : key}
+                  </span>
                   <span className="font-bold text-sm">{value}</span>
                 </div>
               ))}
@@ -2054,13 +2105,13 @@ export default function MonolithApp() {
                 <div className="bg-surface-container-low p-12 rounded-full mb-6">
                   <Settings size={64} className="text-primary animate-spin-slow" />
                 </div>
-                <h2 className="text-3xl font-bold mb-2">Module Under Maintenance</h2>
-                <p className="text-on-surface-variant max-w-md">We are currently upgrading our {currentPage} management engine. Please check back in a few minutes.</p>
+                <h2 className="text-3xl font-bold mb-2">Módulo em Manutenção</h2>
+                <p className="text-on-surface-variant max-w-md">Estamos atualizando nosso mecanismo de gerenciamento de {currentPage === 'services' ? 'serviços' : 'domínios'}. Por favor, volte em alguns minutos.</p>
                 <button 
                   onClick={() => setCurrentPage('dashboard')}
                   className="mt-8 text-primary font-bold uppercase tracking-widest text-xs border-b-2 border-primary/20 hover:border-primary transition-all pb-1"
                 >
-                  Return to Overview
+                  Voltar para Visão Geral
                 </button>
               </div>
             )}

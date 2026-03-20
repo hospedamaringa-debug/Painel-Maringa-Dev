@@ -99,6 +99,7 @@ interface Invoice {
   date: string;
   amount: number;
   status: 'Pago' | 'Pendente' | 'Atrasado';
+  transactionId?: string;
 }
 
 interface AccessInfo {
@@ -1090,19 +1091,25 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
 
   useEffect(() => {
     const pollPaymentStatus = async () => {
-      const pendingInvoices = invoices.filter(inv => inv.status === 'Pendente');
+      const pendingInvoices = invoices.filter(inv => inv.status === 'Pendente' && inv.transactionId);
       if (pendingInvoices.length === 0) return;
 
       for (const invoice of pendingInvoices) {
         try {
-          const invoiceId = invoice.id.replace('#', '');
-          const response = await fetch(`/api/payments/paghiper/webhook?invoiceId=${invoiceId}`);
-          const data = await response.json();
+          const response = await fetch('/api/payments/paghiper/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transaction_id: invoice.transactionId })
+          });
           
-          if (data.paid) {
-            setInvoices(invoices.map(inv => 
-              inv.id === invoice.id ? { ...inv, status: 'Pago' } : inv
-            ));
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.indexOf("application/json") !== -1) {
+            const data = await response.json();
+            if (data.status_request && data.status_request.status === 'paid') {
+              setInvoices(invoices.map(inv => 
+                inv.id === invoice.id ? { ...inv, status: 'Pago' } : inv
+              ));
+            }
           }
         } catch (error) {
           console.error('Erro ao verificar status do pagamento:', error);
@@ -1167,6 +1174,13 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
         } else {
           // PagHiper retorna pix_code como um objeto contendo qrcode_image_url e emv (código copia e cola)
           const pixInfo = data.pix_create_request.pix_code;
+          const transactionId = data.pix_create_request.transaction_id;
+          
+          // Atualiza a fatura com o transactionId para polling
+          setInvoices(invoices.map(inv => 
+            inv.id === selectedInvoice.id ? { ...inv, transactionId } : inv
+          ));
+
           setPaymentResult({ 
             pix_code: pixInfo.emv || '', 
             qrcode_image_url: pixInfo.qrcode_image_url || '' 
@@ -1176,6 +1190,13 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
         if (data.create_request.result === 'reject') {
           setPaymentResult({ error: data.create_request.response_message || 'Erro desconhecido ao gerar Boleto' });
         } else {
+          const transactionId = data.create_request.transaction_id;
+          
+          // Atualiza a fatura com o transactionId para polling
+          setInvoices(invoices.map(inv => 
+            inv.id === selectedInvoice.id ? { ...inv, transactionId } : inv
+          ));
+
           setPaymentResult({ bank_slip: data.create_request.bank_slip });
         }
       } else if (data.error) {
@@ -1745,6 +1766,75 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="space-y-6 mt-12">
+        <div className="flex items-center gap-3">
+          <ShieldCheck className="text-primary" size={24} />
+          <h2 className="text-2xl font-extrabold font-headline tracking-tight">Configurações de Webhook</h2>
+        </div>
+        
+        <div className="bg-surface-container-low p-8 rounded-2xl border border-outline-variant/10 space-y-6">
+          <div className="space-y-2">
+            <p className="text-sm text-on-surface-variant leading-relaxed">
+              Para que o sistema receba confirmações de pagamento automáticas do PagHiper, configure a URL abaixo no seu painel da PagHiper em <strong>Minha Conta &gt; Configurações &gt; Retorno Automático</strong>.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">URL de Notificação (Webhook)</label>
+            <div className="flex gap-2">
+              <input 
+                type="text" 
+                readOnly 
+                value={`${window.location.origin}/api/payments/paghiper/webhook`} 
+                className="flex-1 bg-surface-container-lowest border border-outline-variant/10 rounded-xl px-4 py-4 font-mono text-xs focus:outline-none"
+              />
+              <button 
+                onClick={() => copyToClipboard(`${window.location.origin}/api/payments/paghiper/webhook`)}
+                className="px-6 bg-primary text-on-primary rounded-xl font-bold hover:opacity-90 transition-opacity flex items-center gap-2"
+              >
+                <Copy size={18} />
+                Copiar
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-outline-variant/10">
+            <div className="space-y-3">
+              <h4 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                <ShieldCheck size={14} /> IPs Autorizados (Whitelist)
+              </h4>
+              <ul className="space-y-2">
+                {['3.228.145.191', '15.188.152.107', '54.207.60.165'].map(ip => (
+                  <li key={ip} className="flex items-center gap-2 text-xs font-mono text-on-surface-variant bg-surface-container-lowest px-3 py-1.5 rounded-lg w-fit">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                    {ip}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="space-y-3">
+              <h4 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                <Users size={14} /> User-Agents Aceitos
+              </h4>
+              <div className="space-y-2">
+                <p className="text-[10px] font-mono text-on-surface-variant bg-surface-container-lowest p-2 rounded-lg leading-tight">
+                  PAGHIPER-Webhook/1.3
+                </p>
+                <p className="text-[10px] font-mono text-on-surface-variant bg-surface-container-lowest p-2 rounded-lg leading-tight">
+                  Mozilla/5.0 (Windows NT 10.0; Win64; x64)...
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
+            <p className="text-[10px] text-primary font-medium leading-relaxed">
+              <strong>Nota de Segurança:</strong> O sistema está configurado para validar a origem das notificações através destes IPs e User-Agents, garantindo que apenas a PagHiper possa atualizar o status dos seus pagamentos.
+            </p>
+          </div>
         </div>
       </div>
     </section>

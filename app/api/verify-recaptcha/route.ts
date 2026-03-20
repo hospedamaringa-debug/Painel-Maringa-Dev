@@ -18,12 +18,18 @@ export async function POST(req: Request) {
       body: `secret=${secretKey}&response=${token}`,
     });
 
-    const data = await response.json();
-
-    if (data.success) {
-      return NextResponse.json({ success: true });
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.indexOf("application/json") !== -1) {
+      const data = await response.json();
+      if (data.success) {
+        return NextResponse.json({ success: true });
+      } else {
+        return NextResponse.json({ success: false, errors: data['error-codes'] }, { status: 400 });
+      }
     } else {
-      return NextResponse.json({ success: false, errors: data['error-codes'] }, { status: 400 });
+      const text = await response.text();
+      console.error('Recaptcha retornou resposta não-JSON:', text);
+      return NextResponse.json({ success: false, message: 'Erro na verificação do reCAPTCHA' }, { status: 502 });
     }
   } catch (error) {
     console.error('Error verifying reCAPTCHA:', error);

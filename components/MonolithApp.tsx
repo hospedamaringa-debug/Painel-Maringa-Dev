@@ -167,7 +167,7 @@ interface SupportTicket {
 // --- Mock Data ---
 
 const MOCK_INVOICES: Invoice[] = [
-  { id: '#MN-9042', date: '17 de Mar, 2024', amount: 10.00, status: 'Pendente' },
+  { id: '#MN-9042', date: '17 de Mar, 2024', amount: 10.00, status: 'Pendente', transactionId: '03NOBCIPYYW6VZ26' },
 ];
 
 const MOCK_SERVICES: Service[] = [
@@ -1085,9 +1085,14 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
     setIsCreditModalOpen(false);
   };
 
+  const invoicesRef = useRef(invoices);
+  useEffect(() => {
+    invoicesRef.current = invoices;
+  }, [invoices]);
+
   useEffect(() => {
     const pollPaymentStatus = async () => {
-      const pendingInvoices = invoices.filter(inv => inv.status === 'Pendente' && inv.transactionId);
+      const pendingInvoices = invoicesRef.current.filter(inv => inv.status === 'Pendente' && inv.transactionId);
       if (pendingInvoices.length === 0) return;
 
       for (const invoice of pendingInvoices) {
@@ -1102,7 +1107,7 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
           if (contentType && contentType.indexOf("application/json") !== -1) {
             const data = await response.json();
             if (data.status_request && (data.status_request.status === 'paid' || data.status_request.status === 'completed')) {
-              setInvoices(invoices.map(inv => 
+              setInvoices(invoicesRef.current.map(inv => 
                 inv.id === invoice.id ? { ...inv, status: 'Completo', date: new Date().toLocaleDateString('pt-BR') } : inv
               ));
             }
@@ -1115,7 +1120,7 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
 
     const interval = setInterval(pollPaymentStatus, 5000);
     return () => clearInterval(interval);
-  }, [invoices, setInvoices]);
+  }, []);
 
   const paymentMethods = [
     'Boleto Bancário',

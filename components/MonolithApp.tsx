@@ -167,7 +167,7 @@ interface SupportTicket {
 // --- Mock Data ---
 
 const MOCK_INVOICES: Invoice[] = [
-  { id: '#MN-9042', date: '17 de Mar, 2024', amount: 10.00, status: 'Pendente', transactionId: '03NOBCIPYYW6VZ26' },
+  { id: '#9042', date: '17 de Mar, 2024', amount: 10.00, status: 'Completo', transactionId: '03NOBCIPYYW6VZ26' },
 ];
 
 const MOCK_SERVICES: Service[] = [
@@ -1118,6 +1118,7 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
       }
     };
 
+    pollPaymentStatus();
     const interval = setInterval(pollPaymentStatus, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -1272,10 +1273,10 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
             <span className="text-amber-600 font-black font-headline text-2xl border-b-2 border-amber-600/30 pb-1">Pendente</span>
           </div>
           <h3 className="text-xl font-bold text-amber-900 mb-2">Fatura em Aberto</h3>
-          <p className="text-amber-800/70 text-sm mb-6 leading-relaxed">Fatura #MN-9042 para renovação de domínio está atrasada há 3 dias.</p>
+          <p className="text-amber-800/70 text-sm mb-6 leading-relaxed">Fatura #9042 para renovação de domínio está atrasada há 3 dias.</p>
           <div className="text-2xl font-bold text-amber-700 mb-6">{formatCurrency(10.00)}</div>
           <button 
-            onClick={() => handlePayInvoice({ id: '#MN-9042', date: '17 de Mar, 2024', amount: 10.00, status: 'Pendente' })}
+            onClick={() => handlePayInvoice({ id: '#9042', date: '17 de Mar, 2024', amount: 10.00, status: 'Pendente' })}
             className="w-full bg-amber-600 text-white py-3 rounded-lg font-bold hover:bg-amber-700 transition-all active:scale-95 shadow-lg shadow-amber-600/20"
           >
             Pagar Agora
@@ -1820,7 +1821,7 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
                   <td className="px-6 py-5 text-sm text-on-surface-variant">{invoice.date}</td>
                   <td className="px-6 py-5 font-bold text-sm">{formatCurrency(invoice.amount)}</td>
                   <td className="px-6 py-5">
-                    <span className="text-[10px] font-black tracking-widest uppercase px-2 py-1 bg-primary/10 text-primary rounded">
+                    <span className={`text-[10px] font-black tracking-widest uppercase px-2 py-1 rounded ${invoice.status === 'Completo' ? 'bg-[#08ac76]/10 text-[#08ac76]' : 'bg-primary/10 text-primary'}`}>
                       {invoice.status}
                     </span>
                   </td>
@@ -1834,7 +1835,7 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
                       </button>
                     )}
                     {invoice.status === 'Completo' && (
-                      <span className="px-3 py-1.5 bg-surface-container-highest text-on-surface-variant rounded-lg font-bold text-xs">
+                      <span className="px-3 py-1.5 bg-[#08ac76]/10 text-[#08ac76] rounded-lg font-bold text-xs">
                         Pago
                       </span>
                     )}

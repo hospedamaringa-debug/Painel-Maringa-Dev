@@ -103,6 +103,8 @@ interface Service {
   host: string;
   type: 'hosting' | 'vps' | 'dedicated' | 'ssl';
   status: 'active' | 'suspended' | 'pending';
+  nextBilling?: string;
+  billingCycle?: string;
   accessInfo?: AccessInfo;
   sslInfo?: SSLInfo;
 }
@@ -131,6 +133,8 @@ const MOCK_SERVICES: Service[] = [
     host: 'monolith-v1.com', 
     type: 'hosting', 
     status: 'active',
+    nextBilling: '12 de Out, 2024',
+    billingCycle: 'Anual',
     accessInfo: {
       username: 'monolith_user',
       password: '••••••••••••',
@@ -150,6 +154,8 @@ const MOCK_SERVICES: Service[] = [
     host: '192.168.1.44', 
     type: 'vps', 
     status: 'active',
+    nextBilling: '05 de Abr, 2024',
+    billingCycle: 'Mensal',
     accessInfo: {
       username: 'root',
       password: '••••••••••••',
@@ -171,6 +177,8 @@ const MOCK_SERVICES: Service[] = [
     host: 'hospedamaringa.com.br', 
     type: 'ssl', 
     status: 'active',
+    nextBilling: '18 de Nov, 2024',
+    billingCycle: 'Anual',
     sslInfo: {
       domain: 'hospedamaringa.com.br',
       status: 'AutoSSL Domain Validated',
@@ -938,6 +946,12 @@ const BillingPage = () => {
   const [isCreditModalOpen, setIsCreditModalOpen] = useState(false);
   const [creditAmount, setCreditAmount] = useState('35,00');
   const [paymentMethod, setPaymentMethod] = useState('Pix');
+  
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [checkoutMethod, setCheckoutMethod] = useState<'pix' | 'boleto' | 'nupay'>('pix');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentResult, setPaymentResult] = useState<any>(null);
 
   const paymentMethods = [
     'Boleto Bancário',
@@ -945,6 +959,61 @@ const BillingPage = () => {
     'Cartão de Crédito',
     'Transferência'
   ];
+
+  const handlePayInvoice = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setIsPaymentModalOpen(true);
+    setPaymentResult(null);
+  };
+
+  const processPayment = async () => {
+    if (!selectedInvoice) return;
+    setIsProcessing(true);
+    setPaymentResult(null);
+
+    try {
+      let endpoint = '';
+      if (checkoutMethod === 'pix') endpoint = '/api/payments/paghiper/pix';
+      if (checkoutMethod === 'boleto') endpoint = '/api/payments/paghiper/boleto';
+      if (checkoutMethod === 'nupay') endpoint = '/api/payments/nupay';
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoiceId: selectedInvoice.id.replace('#', ''),
+          amount: selectedInvoice.amount,
+          description: `Pagamento Fatura ${selectedInvoice.id}`
+        })
+      });
+
+      const data = await response.json();
+      
+      if (checkoutMethod === 'pix' && data.pix_create_request) {
+        if (data.pix_create_request.result === 'reject') {
+          setPaymentResult({ error: data.pix_create_request.response_message });
+        } else {
+          setPaymentResult({ 
+            pix_code: data.pix_create_request.pix_code, 
+            qrcode_image_url: data.pix_create_request.qrcode_image_url 
+          });
+        }
+      } else if (checkoutMethod === 'boleto' && data.create_request) {
+        if (data.create_request.result === 'reject') {
+          setPaymentResult({ error: data.create_request.response_message });
+        } else {
+          setPaymentResult({ bank_slip: data.create_request.bank_slip });
+        }
+      } else {
+        setPaymentResult(data);
+      }
+    } catch (error) {
+      console.error('Erro ao processar pagamento:', error);
+      setPaymentResult({ error: 'Falha ao processar o pagamento. Tente novamente.' });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <div className="space-y-12">
@@ -986,7 +1055,12 @@ const BillingPage = () => {
           <h3 className="text-xl font-bold text-on-error-container mb-2">Fatura em Aberto</h3>
           <p className="text-on-error-container/80 text-sm mb-6 leading-relaxed">Fatura #MN-9042 para renovação de domínio está atrasada há 3 dias.</p>
           <div className="text-2xl font-bold text-error mb-6">R$ 24,99</div>
-          <button className="w-full bg-error text-on-error py-3 rounded-lg font-bold hover:bg-error/90 transition-all active:scale-95">Pagar Agora</button>
+          <button 
+            onClick={() => handlePayInvoice({ id: '#MN-9042', date: '17 de Mar, 2024', amount: 24.99, status: 'Pendente' })}
+            className="w-full bg-error text-on-error py-3 rounded-lg font-bold hover:bg-error/90 transition-all active:scale-95"
+          >
+            Pagar Agora
+          </button>
         </div>
       </section>
 
@@ -1063,6 +1137,197 @@ const BillingPage = () => {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {isPaymentModalOpen && selectedInvoice && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsPaymentModalOpen(false)}
+              className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-2xl bg-surface-container-lowest rounded-3xl shadow-2xl border border-outline-variant/10 overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="bg-primary p-8 text-on-primary shrink-0">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-headline text-2xl font-bold">Pagamento de Fatura</h3>
+                  <button onClick={() => setIsPaymentModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                    <X size={24} />
+                  </button>
+                </div>
+                <p className="text-on-primary/70 text-sm">Fatura {selectedInvoice.id} • R$ {selectedInvoice.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              </div>
+
+              <div className="p-8 overflow-y-auto custom-scrollbar">
+                {!paymentResult ? (
+                  <div className="space-y-8">
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Escolha o Método de Pagamento</label>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {[
+                          { id: 'pix', name: 'PIX (PagHiper)', icon: <QrCode size={24} /> },
+                          { id: 'boleto', name: 'Boleto (PagHiper)', icon: <FileText size={24} /> },
+                          { id: 'nupay', name: 'NuPay', icon: <CreditCard size={24} /> }
+                        ].map((method) => (
+                          <button
+                            key={method.id}
+                            onClick={() => setCheckoutMethod(method.id as any)}
+                            className={`flex flex-col items-center justify-center p-6 gap-3 rounded-2xl border-2 transition-all ${
+                              checkoutMethod === method.id 
+                                ? 'bg-primary/5 border-primary text-primary' 
+                                : 'bg-surface-container-low border-outline-variant/10 text-on-surface hover:border-primary/30'
+                            }`}
+                          >
+                            {method.icon}
+                            <span className="font-bold text-sm text-center">{method.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={processPayment}
+                      disabled={isProcessing}
+                      className="w-full bg-primary text-on-primary py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex justify-center items-center gap-2"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+                          Processando...
+                        </>
+                      ) : (
+                        <>Gerar Pagamento</>
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {paymentResult.error ? (
+                      <div className="p-6 bg-error-container text-on-error-container rounded-2xl text-center">
+                        <AlertCircle size={48} className="mx-auto mb-4 text-error" />
+                        <h4 className="font-bold text-lg mb-2">Erro no Pagamento</h4>
+                        <p>{paymentResult.error}</p>
+                        <button 
+                          onClick={() => setPaymentResult(null)}
+                          className="mt-6 px-6 py-2 bg-error text-on-error rounded-lg font-bold text-sm"
+                        >
+                          Tentar Novamente
+                        </button>
+                      </div>
+                    ) : checkoutMethod === 'pix' ? (
+                      <div className="text-center space-y-6">
+                        <div className="inline-block p-4 bg-white rounded-2xl">
+                          {paymentResult.qrcode_image_url ? (
+                            <img src={paymentResult.qrcode_image_url} alt="QR Code PIX" className="w-48 h-48 object-contain" />
+                          ) : (
+                            <div className="w-48 h-48 bg-gray-200 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-400">
+                              <QrCode size={64} className="text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-lg mb-2">Escaneie o QR Code</h4>
+                          <p className="text-sm text-on-surface-variant mb-6">Abra o app do seu banco e escaneie o código acima para pagar via PIX.</p>
+                          
+                          <div className="text-left space-y-2">
+                            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Ou copie o código PIX</label>
+                            <div className="flex gap-2">
+                              <input 
+                                type="text" 
+                                readOnly 
+                                value={paymentResult.pix_code || '00020126580014br.gov.bcb.pix0136...'} 
+                                className="flex-1 bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-3 font-mono text-xs focus:outline-none"
+                              />
+                              <button className="px-4 bg-secondary text-on-secondary rounded-lg font-bold hover:bg-secondary/90 transition-colors">
+                                Copiar
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : checkoutMethod === 'boleto' ? (
+                      <div className="text-center space-y-6">
+                        <FileText size={64} className="mx-auto text-primary" />
+                        <div>
+                          <h4 className="font-bold text-lg mb-2">Boleto Gerado com Sucesso</h4>
+                          <p className="text-sm text-on-surface-variant mb-6">Seu boleto foi gerado e está pronto para pagamento. O prazo de compensação é de até 3 dias úteis.</p>
+                          <a 
+                            href={paymentResult.bank_slip?.url_slip || '#'} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-on-primary rounded-xl font-bold hover:opacity-90 transition-opacity"
+                          >
+                            <Download size={20} />
+                            Visualizar / Imprimir Boleto
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center space-y-6">
+                        <CreditCard size={64} className="mx-auto text-[#8A05BE]" />
+                        <div>
+                          <h4 className="font-bold text-lg mb-2">Redirecionando para NuPay</h4>
+                          <p className="text-sm text-on-surface-variant mb-6">Você será redirecionado para o ambiente seguro do Nubank para concluir o pagamento.</p>
+                          <a 
+                            href={paymentResult.checkoutUrl || '#'} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-8 py-4 bg-[#8A05BE] text-white rounded-xl font-bold hover:opacity-90 transition-opacity"
+                          >
+                            <ExternalLink size={20} />
+                            Pagar com NuPay
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+    <section className="space-y-6">
+      <div className="flex justify-between items-end">
+        <h2 className="text-2xl font-extrabold font-headline tracking-tight">Assinaturas Ativas</h2>
+        <button className="text-[10px] font-bold text-primary uppercase tracking-widest">Gerenciar Todas</button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {MOCK_SERVICES.filter(s => s.status === 'active').map(service => (
+          <div key={service.id} className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10 flex flex-col justify-between">
+            <div>
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center">
+                  {service.type === 'vps' ? <Server size={20} /> : <Globe size={20} />}
+                </div>
+                <span className="text-[10px] font-black tracking-widest uppercase px-2 py-1 bg-primary/10 text-primary rounded">
+                  {service.status}
+                </span>
+              </div>
+              <h3 className="font-bold text-lg mb-1">{service.name}</h3>
+              <p className="text-sm text-on-surface-variant mb-4">{service.id}</p>
+            </div>
+            <div className="pt-4 border-t border-outline-variant/10">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs text-on-surface-variant">Próxima Cobrança</span>
+                <span className="text-sm font-bold">{service.nextBilling}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-on-surface-variant">Ciclo</span>
+                <span className="text-sm font-bold">Mensal</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+
     <section className="grid grid-cols-1 lg:grid-cols-2 gap-12">
       <div className="space-y-6">
         <h2 className="text-2xl font-extrabold font-headline tracking-tight">Métodos de Pagamento</h2>
@@ -1117,7 +1382,15 @@ const BillingPage = () => {
                       {invoice.status}
                     </span>
                   </td>
-                  <td className="px-6 py-5 text-right">
+                  <td className="px-6 py-5 text-right flex items-center justify-end gap-3">
+                    {invoice.status === 'Pendente' && (
+                      <button 
+                        onClick={() => handlePayInvoice(invoice)}
+                        className="px-3 py-1.5 bg-error text-on-error rounded-lg font-bold text-xs hover:bg-error/90 transition-colors"
+                      >
+                        Pagar
+                      </button>
+                    )}
                     <button className="text-on-surface-variant hover:text-primary transition-colors">
                       <Download size={18} />
                     </button>

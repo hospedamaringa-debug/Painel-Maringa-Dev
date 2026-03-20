@@ -1013,6 +1013,39 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
     cvv: ''
   });
 
+  // Estados para busca de status
+  const [transactionSearchId, setTransactionSearchId] = useState('');
+  const [searchResult, setSearchResult] = useState<any>(null);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleSearchStatus = async () => {
+    if (!transactionSearchId) return;
+    setIsSearching(true);
+    setSearchResult(null);
+    try {
+      const response = await fetch('/api/payments/paghiper/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transaction_id: transactionSearchId })
+      });
+      
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        const data = await response.json();
+        setSearchResult(data);
+      } else {
+        const text = await response.text();
+        console.error('Resposta não-JSON recebida:', text);
+        setSearchResult({ error: 'Erro interno do servidor. Tente novamente mais tarde.' });
+      }
+    } catch (error) {
+      console.error('Erro ao buscar status:', error);
+      setSearchResult({ error: 'Falha na consulta' });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const handleAddCard = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCard.name || !newCard.number || !newCard.expiry || !newCard.cvv) return;
@@ -1118,6 +1151,14 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
         })
       });
 
+      const contentType = response.headers.get("content-type");
+      if (!contentType || contentType.indexOf("application/json") === -1) {
+        const text = await response.text();
+        console.error('Resposta não-JSON recebida no pagamento:', text);
+        setPaymentResult({ error: 'Erro interno do servidor ao processar pagamento.' });
+        return;
+      }
+
       const data = await response.json();
       
       if (checkoutMethod === 'pix' && data.pix_create_request) {
@@ -1160,44 +1201,60 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-8 space-y-6">
           <span className="text-[10px] text-primary tracking-widest font-bold uppercase block mb-2">Assinatura Atual</span>
-          <div className="bg-surface-container-lowest rounded-xl p-8 shadow-sm relative overflow-hidden">
+          <div className="bg-surface-container-lowest rounded-xl p-8 shadow-sm relative overflow-hidden border border-outline-variant/5">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16"></div>
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div>
-                <h1 className="text-4xl font-extrabold text-on-surface tracking-tight font-headline">Enterprise Cloud Node</h1>
-                <p className="text-on-surface-variant mt-2 font-medium">Faturado anualmente • Próxima renovação: 12 de Out, 2024</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+              <div className="md:border-r md:border-outline-variant/10 md:pr-8">
+                <h1 className="text-3xl font-extrabold text-on-surface tracking-tight font-headline mb-2">Enterprise Cloud Node</h1>
+                <p className="text-xs text-on-surface-variant font-medium">Faturado anualmente • Próxima renovação: 12 de Out, 2024</p>
+                
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <button className="bg-gradient-to-br from-primary to-primary-container text-on-primary px-5 py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-wider shadow-lg shadow-primary/20 hover:opacity-90 transition-all active:scale-95">Upgrade de Plano</button>
+                  <button 
+                    onClick={() => setIsCreditModalOpen(true)}
+                    className="bg-surface-container-highest text-on-surface px-5 py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-wider hover:bg-surface-variant transition-all active:scale-95"
+                  >
+                    Carregar Créditos
+                  </button>
+                </div>
               </div>
-              <div className="text-right">
-                <div className="text-3xl font-black text-primary font-headline">{formatCurrency(1240)}<span className="text-lg font-medium text-on-surface-variant">/ano</span></div>
-                <span className="inline-flex items-center px-3 py-1 rounded-full border border-primary text-primary text-[10px] font-bold mt-2">
-                  <span className="w-2 h-2 bg-primary rounded-full mr-2 animate-pulse"></span>
-                  ATIVO
-                </span>
+              
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/5 group hover:border-primary/20 transition-colors">
+                  <div className="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
+                    <Globe size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">Hospedagem Pro Compartilhada</h4>
+                    <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">Próxima: 12 de Out, 2024</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/5 group hover:border-primary/20 transition-colors">
+                  <div className="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
+                    <Server size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">VPS Gerenciado NVMe</h4>
+                    <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">Próxima: 05 de Abr, 2024</p>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="mt-8 flex flex-wrap gap-4">
-              <button className="bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-3 rounded-lg font-bold text-xs shadow-lg hover:opacity-90 transition-all active:scale-95">Upgrade de Plano</button>
-              <button 
-                onClick={() => setIsCreditModalOpen(true)}
-                className="bg-surface-container-highest text-on-surface px-6 py-3 rounded-lg font-bold text-xs hover:bg-surface-variant transition-all active:scale-95"
-              >
-                Carregar Créditos
-              </button>
             </div>
           </div>
         </div>
 
-        <div className="lg:col-span-4 bg-error-container/40 rounded-xl p-8 backdrop-blur-sm relative border border-error/10">
+        <div className="lg:col-span-4 bg-amber-50/50 rounded-xl p-8 backdrop-blur-sm relative border border-amber-200/30">
           <div className="flex justify-between items-start mb-6">
-            <AlertCircle className="text-error" size={32} />
-            <span className="text-error font-black font-headline text-2xl border-b-2 border-error pb-1">Pendente</span>
+            <AlertCircle className="text-amber-600" size={32} />
+            <span className="text-amber-600 font-black font-headline text-2xl border-b-2 border-amber-600/30 pb-1">Pendente</span>
           </div>
-          <h3 className="text-xl font-bold text-on-error-container mb-2">Fatura em Aberto</h3>
-          <p className="text-on-error-container/80 text-sm mb-6 leading-relaxed">Fatura #MN-9042 para renovação de domínio está atrasada há 3 dias.</p>
-          <div className="text-2xl font-bold text-error mb-6">{formatCurrency(10.00)}</div>
+          <h3 className="text-xl font-bold text-amber-900 mb-2">Fatura em Aberto</h3>
+          <p className="text-amber-800/70 text-sm mb-6 leading-relaxed">Fatura #MN-9042 para renovação de domínio está atrasada há 3 dias.</p>
+          <div className="text-2xl font-bold text-amber-700 mb-6">{formatCurrency(10.00)}</div>
           <button 
             onClick={() => handlePayInvoice({ id: '#MN-9042', date: '17 de Mar, 2024', amount: 10.00, status: 'Pendente' })}
-            className="w-full bg-error text-on-error py-3 rounded-lg font-bold hover:bg-error/90 transition-all active:scale-95"
+            className="w-full bg-amber-600 text-white py-3 rounded-lg font-bold hover:bg-amber-700 transition-all active:scale-95 shadow-lg shadow-amber-600/20"
           >
             Pagar Agora
           </button>
@@ -1440,40 +1497,6 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
         )}
       </AnimatePresence>
 
-    <section className="space-y-6">
-      <div className="flex justify-between items-end">
-        <h2 className="text-2xl font-extrabold font-headline tracking-tight">Assinaturas Ativas</h2>
-        <button className="text-[10px] font-bold text-primary uppercase tracking-widest">Gerenciar Todas</button>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {MOCK_SERVICES.filter(s => s.status === 'active').map(service => (
-          <div key={service.id} className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10 flex flex-col justify-between">
-            <div>
-              <div className="flex justify-between items-start mb-4">
-                <div className="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center">
-                  {service.type === 'vps' ? <Server size={20} /> : <Globe size={20} />}
-                </div>
-                <span className="text-[10px] font-black tracking-widest uppercase px-2 py-1 bg-primary/10 text-primary rounded">
-                  {service.status}
-                </span>
-              </div>
-              <h3 className="font-bold text-lg mb-1">{service.name}</h3>
-              <p className="text-sm text-on-surface-variant mb-4">{service.id}</p>
-            </div>
-            <div className="pt-4 border-t border-outline-variant/10">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs text-on-surface-variant">Próxima Cobrança</span>
-                <span className="text-sm font-bold">{service.nextBilling}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-on-surface-variant">Ciclo</span>
-                <span className="text-sm font-bold">Mensal</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
 
     <section className="grid grid-cols-1 lg:grid-cols-2 gap-12">
       <div className="space-y-6">
@@ -1628,6 +1651,63 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
           <h2 className="text-2xl font-extrabold font-headline tracking-tight">Histórico de Faturamento</h2>
           <button className="text-[10px] font-bold text-primary uppercase tracking-widest">Baixar Tudo</button>
         </div>
+
+        {/* Ferramenta de Busca de Status PagHiper */}
+        <div className="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 space-y-4">
+          <div className="flex flex-col md:flex-row gap-4 items-end">
+            <div className="flex-1 space-y-2">
+              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Consulta de status do boleto / PIX</label>
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant" size={18} />
+                <input 
+                  type="text" 
+                  placeholder="ID da Transação (ex: HP...)" 
+                  value={transactionSearchId}
+                  onChange={(e) => setTransactionSearchId(e.target.value)}
+                  className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-xl pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-primary transition-all"
+                />
+              </div>
+            </div>
+            <button 
+              onClick={handleSearchStatus}
+              disabled={isSearching || !transactionSearchId}
+              className="bg-primary text-on-primary px-8 py-3 rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
+            >
+              {isSearching ? <RefreshCw size={18} className="animate-spin" /> : <Search size={18} />}
+              Consultar
+            </button>
+          </div>
+
+          {searchResult && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`p-4 rounded-lg border ${searchResult.error || (searchResult.status_request && searchResult.status_request.result === 'reject') ? 'bg-error-container text-on-error-container border-error/20' : 'bg-primary/5 text-on-surface border-primary/20'}`}
+            >
+              {searchResult.error ? (
+                <p className="text-sm font-medium">{searchResult.error}</p>
+              ) : searchResult.status_request && searchResult.status_request.result === 'reject' ? (
+                <p className="text-sm font-medium">{searchResult.status_request.response_message}</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="block text-[10px] font-bold text-on-surface-variant uppercase">Status</span>
+                    <span className="font-bold text-primary">{searchResult.status_request?.status || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-on-surface-variant uppercase">Valor</span>
+                    <span className="font-bold">{formatCurrency(searchResult.status_request?.value_cents / 100 || 0)}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-on-surface-variant uppercase">Data</span>
+                    <span>{searchResult.status_request?.date || 'N/A'}</span>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </div>
+
         <div className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm">
           <table className="w-full text-left border-collapse">
             <thead className="bg-surface-container-low">

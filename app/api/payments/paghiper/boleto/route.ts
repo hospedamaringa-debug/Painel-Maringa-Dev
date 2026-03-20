@@ -34,8 +34,15 @@ export async function POST(req: Request) {
       body: JSON.stringify(data)
     });
 
-    const result = await response.json();
-    return NextResponse.json(result);
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.indexOf("application/json") !== -1) {
+      const result = await response.json();
+      return NextResponse.json(result);
+    } else {
+      const text = await response.text();
+      console.error('PagHiper retornou resposta não-JSON (Boleto):', text);
+      return NextResponse.json({ error: 'Resposta inválida da API do PagHiper' }, { status: 502 });
+    }
   } catch (error) {
     console.error('Erro Boleto PagHiper:', error);
     return NextResponse.json({ error: 'Erro ao gerar Boleto' }, { status: 500 });

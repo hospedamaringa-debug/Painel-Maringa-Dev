@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   UserCircle, 
   AlertCircle, 
@@ -167,9 +167,9 @@ interface SupportTicket {
 // --- Mock Data ---
 
 const MOCK_INVOICES: Invoice[] = [
+  { id: '#9041', date: '16 de Mar, 2024', amount: 5.00, status: 'Completo', transactionId: '03924C9HFPHRR526' },
   { id: '#9042', date: '17 de Mar, 2024', amount: 5.00, status: 'Completo', transactionId: '03NOBCIPYYW6VZ26' },
   { id: '#9043', date: '18 de Mar, 2024', amount: 5.00, status: 'Pendente' },
-  { id: '#9044', date: '19 de Mar, 2024', amount: 5.00, status: 'Pendente' },
 ];
 
 const MOCK_SERVICES: Service[] = [
@@ -337,7 +337,7 @@ const MOCK_PROJECTS: Project[] = [
 
 // --- Components ---
 
-const Navbar = ({ currentPage, setCurrentPage, onNotificationClick }: { currentPage: Page, setCurrentPage: (p: Page) => void, onNotificationClick?: (type: string) => void }) => {
+const Navbar = ({ currentPage, setCurrentPage, onNotificationClick, notifications }: { currentPage: Page, setCurrentPage: (p: Page) => void, onNotificationClick?: (type: string) => void, notifications: any[] }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
@@ -369,11 +369,6 @@ const Navbar = ({ currentPage, setCurrentPage, onNotificationClick }: { currentP
     { label: 'Faturamento', value: 'billing' },
     { label: 'Status', value: 'status' },
     { label: 'Atividade', value: 'activity' },
-  ];
-
-  const notifications = [
-    { id: 1, title: 'Ticket Aberto', detail: '#MN-8291: Latência no Banco de Dados em US-EAST-1', type: 'suporte', time: '14m atrás' },
-    { id: 3, title: 'Alerta do Sistema', detail: 'Mecanismo de Computação (US-EAST) está degradado', type: 'status', time: '1h atrás' },
   ];
 
   return (
@@ -422,7 +417,7 @@ const Navbar = ({ currentPage, setCurrentPage, onNotificationClick }: { currentP
                 >
                   <div className="p-4 border-b border-outline-variant/10 bg-surface-container-low flex justify-between items-center">
                     <h4 className="font-bold text-xs uppercase tracking-widest">Notificações</h4>
-                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">3 Novas</span>
+                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{notifications.length} Novas</span>
                   </div>
                   <div className="divide-y divide-outline-variant/10">
                     {notifications.map((n) => (
@@ -995,6 +990,8 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [checkoutMethod, setCheckoutMethod] = useState<'pix' | 'boleto' | 'nupay'>('pix');
+  const [payerPhone, setPayerPhone] = useState(userProfile.phone || '');
+  const [payerAddress, setPayerAddress] = useState(userProfile.address || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentResult, setPaymentResult] = useState<any>(null);
 
@@ -1158,7 +1155,9 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
           description: `Pagamento Fatura ${selectedInvoice.id}`,
           payerName: userProfile.name,
           payerEmail: userProfile.email,
-          payerCpf: userProfile.cpf || userProfile.cnpj
+          payerCpf: userProfile.cpf || userProfile.cnpj,
+          payerPhone,
+          payerAddress
         })
       });
 
@@ -1392,6 +1391,28 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
               <div className="p-8 overflow-y-auto custom-scrollbar">
                 {!paymentResult ? (
                   <div className="space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Telefone</label>
+                        <input 
+                          type="text" 
+                          value={payerPhone}
+                          onChange={(e) => setPayerPhone(e.target.value)}
+                          className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                          placeholder="(00) 00000-0000"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Endereço</label>
+                        <input 
+                          type="text" 
+                          value={payerAddress}
+                          onChange={(e) => setPayerAddress(e.target.value)}
+                          className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                          placeholder="Rua, Número, Bairro, Cidade - UF"
+                        />
+                      </div>
+                    </div>
                     <div className="space-y-4">
                       <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Escolha o Método de Pagamento</label>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -3464,6 +3485,17 @@ export default function MonolithApp() {
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [activityCategory, setActivityCategory] = useState('Toda Atividade');
   const [invoices, setInvoices] = useState<Invoice[]>(MOCK_INVOICES);
+  const notifications = useMemo(() => [
+    { id: 1, title: 'Ticket Aberto', detail: '#MN-8291: Latência no Banco de Dados em US-EAST-1', type: 'suporte', time: '14m atrás' },
+    { id: 3, title: 'Alerta do Sistema', detail: 'Mecanismo de Computação (US-EAST) está degradado', type: 'status', time: '1h atrás' },
+    ...invoices.filter(inv => inv.status === 'Pendente').map(inv => ({
+      id: inv.id,
+      title: 'Fatura Pendente',
+      detail: `Fatura ${inv.id} está aguardando pagamento.`,
+      type: 'faturamento',
+      time: 'Agora'
+    }))
+  ], [invoices]);
   const [userProfile, setUserProfile] = useState<UserProfile>({
     name: 'Alex Sterling',
     email: 'alex@sterling.com',
@@ -3514,6 +3546,7 @@ export default function MonolithApp() {
         currentPage={currentPage} 
         setCurrentPage={handlePageChange} 
         onNotificationClick={handleNotificationClick}
+        notifications={notifications}
       />
       
       <main className="flex-grow pt-32 pb-24 px-6 md:px-10 lg:px-20 max-w-[1600px] mx-auto w-full">

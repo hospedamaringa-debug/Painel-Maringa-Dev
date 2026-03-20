@@ -21,6 +21,8 @@ import {
   Menu,
   X,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   History,
   Tag,
   Filter,
@@ -36,13 +38,24 @@ import {
   Calendar,
   Users,
   MoreVertical,
-  MessageSquare
+  MessageSquare,
+  Key,
+  ExternalLink,
+  Terminal,
+  Info,
+  ArrowLeft,
+  Copy,
+  Eye,
+  EyeOff,
+  Zap,
+  Bell,
+  BellDot
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 // --- Types ---
 
-type Page = 'dashboard' | 'billing' | 'support' | 'services' | 'domains' | 'status' | 'activity' | 'projects';
+type Page = 'dashboard' | 'billing' | 'support' | 'services' | 'domains' | 'status' | 'activity' | 'projects' | 'service-manage' | 'ticket-detail' | 'terms' | 'privacy' | 'products' | 'profile';
 
 interface Invoice {
   id: string;
@@ -51,12 +64,30 @@ interface Invoice {
   status: 'Paid' | 'Pending' | 'Overdue';
 }
 
+interface AccessInfo {
+  username: string;
+  password: string;
+  mainIp: string;
+  additionalIps?: string[];
+  cpanelUrl?: string;
+  directAdminUrl?: string;
+  nameservers: string[];
+  specs: {
+    cpu?: string;
+    ram?: string;
+    storage?: string;
+    bandwidth?: string;
+    os?: string;
+  };
+}
+
 interface Service {
   id: string;
   name: string;
   host: string;
   type: 'hosting' | 'vps' | 'dedicated';
   status: 'active' | 'suspended' | 'pending';
+  accessInfo: AccessInfo;
 }
 
 interface SupportTicket {
@@ -76,8 +107,46 @@ const MOCK_INVOICES: Invoice[] = [
 ];
 
 const MOCK_SERVICES: Service[] = [
-  { id: '1', name: 'Shared Pro Hosting', host: 'monolith-v1.com', type: 'hosting', status: 'active' },
-  { id: '2', name: 'Managed VPS NVMe', host: '192.168.1.44', type: 'vps', status: 'active' },
+  { 
+    id: '1', 
+    name: 'Shared Pro Hosting', 
+    host: 'monolith-v1.com', 
+    type: 'hosting', 
+    status: 'active',
+    accessInfo: {
+      username: 'monolith_user',
+      password: '••••••••••••',
+      mainIp: '162.241.123.45',
+      cpanelUrl: 'https://monolith-v1.com:2083',
+      nameservers: ['ns1.monolith-dns.com', 'ns2.monolith-dns.com'],
+      specs: {
+        storage: '50GB NVMe',
+        bandwidth: 'Unlimited',
+        ram: '2GB Shared'
+      }
+    }
+  },
+  { 
+    id: '2', 
+    name: 'Managed VPS NVMe', 
+    host: '192.168.1.44', 
+    type: 'vps', 
+    status: 'active',
+    accessInfo: {
+      username: 'root',
+      password: '••••••••••••',
+      mainIp: '192.168.1.44',
+      additionalIps: ['192.168.1.45', '192.168.1.46'],
+      directAdminUrl: 'https://192.168.1.44:2222',
+      nameservers: ['ns1.monolith-vps.com', 'ns2.monolith-vps.com'],
+      specs: {
+        cpu: '4 vCPU Cores',
+        ram: '8GB LPDDR5',
+        storage: '400GB NVMe SSD',
+        os: 'Ubuntu 22.04 LTS'
+      }
+    }
+  },
 ];
 
 const MOCK_TICKETS: SupportTicket[] = [
@@ -85,6 +154,21 @@ const MOCK_TICKETS: SupportTicket[] = [
   { id: '#MN-8104', title: 'SSL Certificate Renewal Error', priority: 'Medium', status: 'In Progress', updatedAt: '2h ago' },
   { id: '#MN-7922', title: 'Invoice #8292 Query', priority: 'Low', status: 'Closed', updatedAt: 'Dec 12, 2023' },
 ];
+
+const MOCK_TICKET_RESPONSES: Record<string, { sender: string, role: 'support' | 'user', message: string, time: string }[]> = {
+  '#MN-8291': [
+    { sender: 'Alex Sterling', role: 'user', message: 'I am seeing significant latency spikes in my US-EAST-1 database cluster. Queries that usually take 10ms are now taking over 500ms.', time: '20m ago' },
+    { sender: 'Monolith Support (Sarah)', role: 'support', message: 'Hello Alex, we have identified a network congestion issue in the US-EAST-1 region affecting some NVMe clusters. Our engineering team is rerouting traffic now. You should see performance return to normal within the next 10 minutes.', time: '14m ago' },
+  ],
+  '#MN-8104': [
+    { sender: 'Alex Sterling', role: 'user', message: 'The auto-renewal for my SSL certificate on dev-stack.net failed with a timeout error. Can you check the ACME challenge status?', time: '3h ago' },
+    { sender: 'Monolith Support (Mike)', role: 'support', message: 'Checking now. It seems your DNS provider is blocking our validation requests. Please ensure port 53 is open for our IP range or add the TXT record manually to bypass the automated check.', time: '2h ago' },
+  ],
+  '#MN-7922': [
+    { sender: 'Alex Sterling', role: 'user', message: 'I was charged twice for Invoice #8292. Can you please verify and issue a refund for the duplicate transaction?', time: 'Dec 12, 2023' },
+    { sender: 'Monolith Billing', role: 'support', message: 'We have verified the duplicate charge. A refund has been processed and should appear in your account within 3-5 business days. We apologize for the inconvenience.', time: 'Dec 12, 2023' },
+  ]
+};
 
 interface SystemStatus {
   name: string;
@@ -168,15 +252,22 @@ const MOCK_PROJECTS: Project[] = [
 
 const Navbar = ({ currentPage, setCurrentPage }: { currentPage: Page, setCurrentPage: (p: Page) => void }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const navItems: { label: string, value: Page }[] = [
-    { label: 'Services', value: 'services' },
+    { label: 'Products', value: 'products' },
     { label: 'Domains', value: 'domains' },
     { label: 'Projects', value: 'projects' },
     { label: 'Support', value: 'support' },
     { label: 'Billing', value: 'billing' },
     { label: 'Status', value: 'status' },
     { label: 'Activity', value: 'activity' },
+  ];
+
+  const notifications = [
+    { id: 1, title: 'Open Ticket', detail: '#MN-8291: Database Latency in US-EAST-1', type: 'support', time: '14m ago' },
+    { id: 2, title: 'Pending Invoice', detail: '#MN-8932: R$ 1.240,00 awaiting payment', type: 'billing', time: '2h ago' },
+    { id: 3, title: 'System Alert', detail: 'Compute Engine (US-EAST) is currently degraded', type: 'status', time: '1h ago' },
   ];
 
   return (
@@ -206,9 +297,53 @@ const Navbar = ({ currentPage, setCurrentPage }: { currentPage: Page, setCurrent
         </div>
 
         <div className="flex items-center space-x-4">
-          <button className="text-on-surface-variant hover:text-primary transition-colors">
+          <div className="relative">
+            <button 
+              onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+              className="text-on-surface-variant hover:text-primary transition-colors p-2 relative"
+            >
+              <BellDot size={24} className="text-primary" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full border-2 border-surface"></span>
+            </button>
+
+            <AnimatePresence>
+              {isNotificationsOpen && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute right-0 mt-4 w-80 bg-surface-container-lowest rounded-2xl shadow-2xl border border-outline-variant/10 overflow-hidden z-50"
+                >
+                  <div className="p-4 border-b border-outline-variant/10 bg-surface-container-low flex justify-between items-center">
+                    <h4 className="font-bold text-xs uppercase tracking-widest">Notifications</h4>
+                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">3 New</span>
+                  </div>
+                  <div className="divide-y divide-outline-variant/10">
+                    {notifications.map((n) => (
+                      <div key={n.id} className="p-4 hover:bg-surface-container-low transition-colors cursor-pointer group">
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-primary">{n.title}</span>
+                          <span className="text-[10px] text-on-surface-variant">{n.time}</span>
+                        </div>
+                        <p className="text-xs font-medium text-on-surface line-clamp-2 mb-1 group-hover:text-primary transition-colors">{n.detail}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <button className="w-full p-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant hover:bg-surface-container-low transition-colors">
+                    Clear All
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <button 
+            onClick={() => setCurrentPage('profile')}
+            className={`transition-colors p-2 rounded-full ${currentPage === 'profile' ? 'text-primary bg-primary/5' : 'text-on-surface-variant hover:text-primary'}`}
+          >
             <UserCircle size={28} />
           </button>
+          
           <button 
             className="md:hidden text-on-surface-variant"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -249,15 +384,23 @@ const Navbar = ({ currentPage, setCurrentPage }: { currentPage: Page, setCurrent
   );
 };
 
-const Footer = () => (
+const Footer = ({ onStatusClick, onTermsClick, onPrivacyClick }: { onStatusClick: () => void, onTermsClick: () => void, onPrivacyClick: () => void }) => (
   <footer className="bg-surface-container-low py-12 border-t border-outline-variant/10">
     <div className="flex flex-col md:flex-row justify-between items-center px-6 md:px-10 w-full max-w-[1920px] mx-auto gap-8">
       <div className="text-lg font-bold text-primary font-brand">Monolith Infrastructure</div>
       <div className="flex flex-wrap justify-center gap-6 md:gap-8">
         {['Terms of Service', 'Privacy Policy', 'Status Page', 'Network Map'].map((item) => (
-          <a key={item} href="#" className="text-on-surface-variant font-medium hover:underline decoration-2 underline-offset-4 transition-opacity hover:opacity-80 text-sm">
+          <button 
+            key={item} 
+            onClick={() => {
+              if (item === 'Status Page') onStatusClick();
+              if (item === 'Terms of Service') onTermsClick();
+              if (item === 'Privacy Policy') onPrivacyClick();
+            }}
+            className="text-on-surface-variant font-medium hover:underline decoration-2 underline-offset-4 transition-opacity hover:opacity-80 text-sm"
+          >
             {item}
-          </a>
+          </button>
         ))}
       </div>
       <div className="text-on-surface-variant font-medium text-xs opacity-60">
@@ -269,7 +412,212 @@ const Footer = () => (
 
 // --- Page Components ---
 
-const DashboardPage = () => (
+const TermsOfServicePage = ({ onBack }: { onBack: () => void }) => (
+  <div className="max-w-4xl mx-auto space-y-12">
+    <header className="text-center">
+      <button 
+        onClick={onBack}
+        className="mb-8 flex items-center gap-2 text-primary font-bold uppercase tracking-widest text-xs hover:gap-3 transition-all mx-auto"
+      >
+        <ArrowLeft size={16} />
+        Back to Overview
+      </button>
+      <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Terms of Service</h1>
+      <p className="text-on-surface-variant text-lg leading-relaxed">Last updated: March 20, 2024</p>
+    </header>
+
+    <div className="bg-surface-container-lowest p-8 md:p-12 rounded-2xl border border-outline-variant/10 space-y-8 text-on-surface-variant leading-relaxed">
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold text-on-surface font-headline">1. Acceptance of Terms</h2>
+        <p>By accessing and using the Monolith Infrastructure platform, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.</p>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold text-on-surface font-headline">2. Service Level Agreement (SLA)</h2>
+        <p>We guarantee a 99.99% uptime for our core infrastructure. In the event of a breach of this SLA, customers may be eligible for service credits as outlined in our detailed SLA documentation.</p>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold text-on-surface font-headline">3. User Responsibilities</h2>
+        <p>Users are responsible for maintaining the security of their account credentials and for all activities that occur under their account. You agree to notify us immediately of any unauthorized use of your account.</p>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold text-on-surface font-headline">4. Prohibited Activities</h2>
+        <p>Our infrastructure may not be used for illegal activities, including but not limited to: hosting malware, conducting DDoS attacks, or unauthorized access to other systems.</p>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold text-on-surface font-headline">5. Limitation of Liability</h2>
+        <p>Monolith Infrastructure shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use the service.</p>
+      </section>
+    </div>
+  </div>
+);
+
+const PrivacyPolicyPage = ({ onBack }: { onBack: () => void }) => (
+  <div className="max-w-4xl mx-auto space-y-12">
+    <header className="text-center">
+      <button 
+        onClick={onBack}
+        className="mb-8 flex items-center gap-2 text-primary font-bold uppercase tracking-widest text-xs hover:gap-3 transition-all mx-auto"
+      >
+        <ArrowLeft size={16} />
+        Back to Overview
+      </button>
+      <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Privacy Policy</h1>
+      <p className="text-on-surface-variant text-lg leading-relaxed">Last updated: March 20, 2024</p>
+    </header>
+
+    <div className="bg-surface-container-lowest p-8 md:p-12 rounded-2xl border border-outline-variant/10 space-y-8 text-on-surface-variant leading-relaxed">
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold text-on-surface font-headline">1. Information We Collect</h2>
+        <p>We collect information you provide directly to us, such as when you create an account, update your profile, or contact support. This may include your name, email address, and billing information.</p>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold text-on-surface font-headline">2. How We Use Your Information</h2>
+        <p>We use the information we collect to provide, maintain, and improve our services, to process transactions, and to communicate with you about your account and our platform.</p>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold text-on-surface font-headline">3. Data Security</h2>
+        <p>We implement industry-standard security measures to protect your personal information from unauthorized access, disclosure, or destruction. However, no method of transmission over the internet is 100% secure.</p>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold text-on-surface font-headline">4. Third-Party Services</h2>
+        <p>We may share your information with third-party service providers who perform services on our behalf, such as payment processing and data analysis. These providers are obligated to protect your information.</p>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold text-on-surface font-headline">5. Your Rights</h2>
+        <p>You have the right to access, update, or delete your personal information. You can manage your account settings through the platform or contact us for assistance.</p>
+      </section>
+    </div>
+  </div>
+);
+
+const ProductsPage = () => {
+  const products = [
+    {
+      id: 'hosting',
+      title: 'Hospedagem Compartilhada',
+      description: 'Ideal para sites pequenos e blogs. Performance otimizada com NVMe.',
+      price: 'R$ 19,90',
+      period: '/mês',
+      icon: <Globe size={24} />,
+      features: ['Domínio Grátis', 'SSL Ilimitado', 'Backups Diários', 'Suporte 24/7']
+    },
+    {
+      id: 'vps',
+      title: 'Servidores VPS',
+      description: 'Controle total e recursos dedicados para aplicações escaláveis.',
+      price: 'R$ 89,00',
+      period: '/mês',
+      icon: <Cpu size={24} />,
+      features: ['Acesso Root', 'IP Dedicado', 'Escalabilidade Real', 'SSD NVMe']
+    },
+    {
+      id: 'dedicated',
+      title: 'Servidores Dedicados',
+      description: 'Poder bruto para grandes projetos e infraestruturas críticas.',
+      price: 'R$ 450,00',
+      period: '/mês',
+      icon: <Server size={24} />,
+      features: ['Hardware Exclusivo', 'Tráfego Ilimitado', 'Rede 10Gbps', 'Monitoramento']
+    },
+    {
+      id: 'ssl',
+      title: 'Certificados SSL',
+      description: 'Segurança e confiança para seus visitantes com criptografia forte.',
+      price: 'R$ 49,00',
+      period: '/ano',
+      icon: <ShieldCheck size={24} />,
+      features: ['Validação de Domínio', 'Selo de Segurança', 'Compatível com Browsers', 'Garantia']
+    },
+    {
+      id: 'backup',
+      title: 'Backup de Dados',
+      description: 'Proteção contra perda de dados com armazenamento externo seguro.',
+      price: 'R$ 29,90',
+      period: '/mês',
+      icon: <Database size={24} />,
+      features: ['Snapshots Automáticos', 'Retenção de 30 dias', 'Restauração Rápida', 'Criptografia']
+    },
+    {
+      id: 'licenses',
+      title: 'Licenças e Softwares',
+      description: 'Licenciamento oficial para cPanel, Plesk, CloudLinux e mais.',
+      price: 'Sob consulta',
+      period: '',
+      icon: <Terminal size={24} />,
+      features: ['Ativação Imediata', 'Suporte Técnico', 'Preços Competitivos', 'Gestão Centralizada']
+    }
+  ];
+
+  return (
+    <div className="space-y-12">
+      <header className="max-w-3xl">
+        <span className="font-label text-xs tracking-widest uppercase text-primary font-bold mb-4 block">Soluções de Infraestrutura</span>
+        <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Nossos Planos e Produtos</h1>
+        <p className="text-on-surface-variant text-lg leading-relaxed">
+          Escolha a solução ideal para o seu projeto. De hospedagem simples a infraestruturas complexas e dedicadas.
+        </p>
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {products.map((product) => (
+          <div key={product.id} className="bg-surface-container-low rounded-2xl p-8 border border-outline-variant/10 hover:border-primary/30 transition-all group flex flex-col h-full">
+            <div className="flex justify-between items-start mb-6">
+              <div className="p-3 bg-primary/5 rounded-xl text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+                {product.icon}
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-black text-primary">{product.price}</div>
+                <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">{product.period}</div>
+              </div>
+            </div>
+            
+            <h3 className="font-headline text-xl font-bold mb-3 group-hover:text-primary transition-colors">{product.title}</h3>
+            <p className="text-on-surface-variant text-sm mb-8 flex-grow">{product.description}</p>
+            
+            <ul className="space-y-3 mb-8">
+              {product.features.map((feature, i) => (
+                <li key={i} className="flex items-center gap-2 text-xs font-medium text-on-surface">
+                  <CheckCircle size={14} className="text-primary" />
+                  {feature}
+                </li>
+              ))}
+            </ul>
+
+            <button className="w-full py-4 bg-surface-container-highest text-on-surface font-bold rounded-xl hover:bg-primary hover:text-on-primary transition-all active:scale-95">
+              Assinar Agora
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-primary/5 rounded-3xl p-12 flex flex-col md:flex-row items-center justify-between gap-8 border border-primary/10">
+        <div className="max-w-xl">
+          <h2 className="text-3xl font-bold font-headline mb-4">Precisa de uma solução personalizada?</h2>
+          <p className="text-on-surface-variant">Nossos arquitetos de nuvem podem desenhar uma infraestrutura sob medida para as necessidades específicas do seu negócio.</p>
+        </div>
+        <button className="px-8 py-4 bg-primary text-on-primary rounded-xl font-bold shadow-lg hover:shadow-primary/20 transition-all active:scale-95 whitespace-nowrap">
+          Falar com Especialista
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewStatus, onTicketClick }: { 
+  onManageService: (id: string) => void, 
+  onViewActivity: () => void,
+  onOpenTicket: () => void,
+  onViewStatus: () => void,
+  onTicketClick: (id: string) => void
+}) => (
   <div className="space-y-12">
     <div>
       <label className="text-primary font-bold tracking-widest uppercase text-xs mb-2 block">Infrastructure Dashboard</label>
@@ -333,44 +681,54 @@ const DashboardPage = () => (
                     <p className="text-xs text-on-surface-variant">{service.host}</p>
                   </div>
                 </div>
-                <button className="text-primary font-bold text-xs uppercase tracking-wider hover:underline">Manage</button>
+                <button 
+                  onClick={() => onManageService(service.id)}
+                  className="text-primary font-bold text-xs uppercase tracking-wider hover:underline"
+                >
+                  Manage
+                </button>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Portfolio */}
+        {/* Suporte Recentes */}
         <div className="bg-surface-container-lowest rounded-xl p-8 shadow-sm">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h3 className="font-bold text-xl mb-1">Portfolio</h3>
-              <p className="text-on-surface-variant text-sm">2 Domains registered</p>
+              <h3 className="font-bold text-xl mb-1">Suporte Recentes</h3>
+              <p className="text-on-surface-variant text-sm">{MOCK_TICKETS.filter(t => t.status !== 'Closed').length} Tickets ativos</p>
             </div>
             <div className="bg-secondary-fixed p-3 rounded-lg">
-              <Globe className="text-secondary" size={24} />
+              <MessageSquare className="text-secondary" size={24} />
             </div>
           </div>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-surface-container-low rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded bg-primary-container flex items-center justify-center text-white text-[10px] font-bold">.COM</div>
-                <div>
-                  <p className="font-bold text-sm">monolith-infra.com</p>
-                  <p className="text-xs text-error font-medium">Expires in 12 days</p>
+            {MOCK_TICKETS.filter(t => t.status !== 'Closed').map(ticket => (
+              <div 
+                key={ticket.id} 
+                onClick={() => onTicketClick(ticket.id)}
+                className="flex items-center justify-between p-4 bg-surface-container-low rounded-lg hover:bg-surface-container-high transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-2 h-2 rounded-full ${ticket.status === 'Open' ? 'bg-primary' : 'bg-secondary'}`} />
+                  <div>
+                    <p className="font-bold text-sm group-hover:text-primary transition-colors">{ticket.title}</p>
+                    <p className="text-xs text-on-surface-variant">{ticket.id} • {ticket.updatedAt}</p>
+                  </div>
                 </div>
+                <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded ${
+                  ticket.priority === 'High' ? 'bg-error-container text-on-error-container' : 
+                  ticket.priority === 'Medium' ? 'bg-secondary-container text-on-secondary-container' : 
+                  'bg-outline-variant/30 text-on-surface-variant'
+                }`}>
+                  {ticket.priority}
+                </span>
               </div>
-              <button className="bg-primary text-on-primary px-4 py-2 rounded-md text-[10px] font-bold uppercase tracking-widest active:scale-95 transition-transform">Renew</button>
-            </div>
-            <div className="flex items-center justify-between p-4 bg-surface-container-low rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded bg-on-surface-variant flex items-center justify-center text-white text-[10px] font-bold">.NET</div>
-                <div>
-                  <p className="font-bold text-sm">dev-stack.net</p>
-                  <p className="text-xs text-on-surface-variant">Auto-renew active</p>
-                </div>
-              </div>
-              <button className="text-primary font-bold text-xs uppercase tracking-wider hover:underline">Settings</button>
-            </div>
+            ))}
+            {MOCK_TICKETS.filter(t => t.status !== 'Closed').length === 0 && (
+              <p className="text-center py-4 text-on-surface-variant text-sm italic">Nenhum ticket ativo no momento.</p>
+            )}
           </div>
         </div>
       </div>
@@ -382,7 +740,12 @@ const DashboardPage = () => (
           </div>
           <h4 className="text-xl font-bold mb-2">Need Technical Assistance?</h4>
           <p className="text-primary-fixed text-sm mb-6 leading-relaxed">Our infrastructure engineers are available 24/7 for managed VPS clients.</p>
-          <button className="w-full bg-surface-container-lowest text-primary py-3 rounded-lg font-bold text-xs uppercase tracking-widest active:scale-95 transition-all">Open Ticket</button>
+          <button 
+            onClick={onOpenTicket}
+            className="w-full bg-surface-container-lowest text-primary py-3 rounded-lg font-bold text-xs uppercase tracking-widest active:scale-95 transition-all"
+          >
+            Open Ticket
+          </button>
         </div>
 
         <div className="bg-surface-container-low rounded-xl p-8">
@@ -405,7 +768,10 @@ const DashboardPage = () => (
               </div>
             ))}
           </div>
-          <button className="mt-8 text-primary font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all">
+          <button 
+            onClick={onViewActivity}
+            className="mt-8 text-primary font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all"
+          >
             View All History <ArrowRight size={14} />
           </button>
         </div>
@@ -426,7 +792,12 @@ const DashboardPage = () => (
           <span className="text-[10px] font-bold uppercase tracking-tighter">Uptime</span>
           <span className="font-headline text-xl font-black">99.99%</span>
         </div>
-        <a className="text-[10px] font-bold uppercase tracking-widest text-primary border-b-2 border-primary/20 hover:border-primary transition-all pb-1" href="#">Detailed Status</a>
+        <button 
+          onClick={onViewStatus}
+          className="text-[10px] font-bold uppercase tracking-widest text-primary border-b-2 border-primary/20 hover:border-primary transition-all pb-1"
+        >
+          Detailed Status
+        </button>
       </div>
     </div>
   </div>
@@ -552,90 +923,238 @@ const BillingPage = () => (
   </div>
 );
 
-const SupportPage = () => (
-  <div className="space-y-12">
-    <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-      <div className="max-w-2xl">
+const SupportPage = ({ onTicketClick }: { onTicketClick: (id: string) => void }) => {
+  const [filter, setFilter] = useState<'All' | 'Open' | 'Closed'>('All');
+  const [search, setSearch] = useState('');
+
+  const filteredTickets = MOCK_TICKETS.filter(ticket => {
+    const matchesFilter = filter === 'All' || ticket.status === filter || (filter === 'Open' && ticket.status === 'In Progress');
+    const matchesSearch = ticket.title.toLowerCase().includes(search.toLowerCase()) || ticket.id.toLowerCase().includes(search.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
+
+  return (
+    <div className="space-y-12">
+      <header className="max-w-3xl">
         <span className="font-label text-xs tracking-widest uppercase text-on-surface-variant font-bold mb-4 block">Help Center</span>
         <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Support Tickets</h1>
         <p className="text-on-surface-variant text-lg leading-relaxed">Manage your infrastructure inquiries. Our engineers are monitoring the monolith around the clock.</p>
-      </div>
-      <button className="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-container text-on-primary px-8 py-4 rounded-xl font-bold active:scale-95 transition-all shadow-lg">
-        <Plus size={20} />
-        <span>Open New Ticket</span>
-      </button>
-    </header>
+      </header>
 
-    <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
-      <div className="md:col-span-2 bg-surface-container-low rounded-xl p-8 flex items-center justify-between overflow-hidden relative group">
-        <div>
-          <div className="text-4xl font-headline font-black text-primary mb-1">04</div>
-          <div className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Active Tickets</div>
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="md:col-span-2 bg-surface-container-low rounded-xl p-8 flex items-center justify-between overflow-hidden relative group">
+          <div>
+            <div className="text-4xl font-headline font-black text-primary mb-1">04</div>
+            <div className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Active Tickets</div>
+          </div>
+          <div className="h-16 w-px bg-outline-variant/20 hidden md:block"></div>
+          <div>
+            <div className="text-4xl font-headline font-black text-on-surface mb-1">12m</div>
+            <div className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Avg. Response</div>
+          </div>
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors"></div>
         </div>
-        <div className="h-16 w-px bg-outline-variant/20 hidden md:block"></div>
-        <div>
-          <div className="text-4xl font-headline font-black text-on-surface mb-1">12m</div>
-          <div className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Avg. Response</div>
-        </div>
-        <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors"></div>
-      </div>
 
-      <div className="md:col-span-2 bg-surface-container-highest rounded-xl p-2 flex items-center gap-2">
-        <button className="flex-1 bg-surface-container-lowest text-primary py-4 px-6 rounded-lg font-bold shadow-sm flex items-center justify-center gap-2">
-          <Filter size={16} />
-          All Tickets
-        </button>
-        <button className="flex-1 hover:bg-surface-container-low py-4 px-6 rounded-lg font-semibold text-on-surface-variant transition-colors flex items-center justify-center">Open</button>
-        <button className="flex-1 hover:bg-surface-container-low py-4 px-6 rounded-lg font-semibold text-on-surface-variant transition-colors flex items-center justify-center">Closed</button>
-      </div>
-    </section>
-
-    <div className="flex flex-col gap-4">
-      {MOCK_TICKETS.map(ticket => (
-        <div key={ticket.id} className="bg-surface-container-lowest p-6 md:p-8 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-6 hover:bg-surface-container-low transition-colors group cursor-pointer">
-          <div className="flex items-start gap-6">
-            <div className="mt-1">
-              {ticket.status === 'Open' ? (
-                <span className="w-3 h-3 rounded-full bg-primary block relative">
-                  <span className="absolute inset-0 w-3 h-3 rounded-full bg-primary animate-ping opacity-75"></span>
-                </span>
-              ) : ticket.status === 'In Progress' ? (
-                <span className="w-3 h-3 rounded-full bg-secondary block"></span>
-              ) : (
-                <CheckCircle className="text-outline" size={20} />
-              )}
+        <div className="md:col-span-2 grid grid-cols-2 gap-4">
+          <button className="flex flex-col items-center justify-center gap-3 bg-surface-container-highest text-on-surface p-6 rounded-xl font-bold active:scale-95 transition-all border border-outline-variant/20 hover:bg-surface-container-high group">
+            <div className="p-3 bg-primary/10 rounded-full text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+              <Zap size={24} />
             </div>
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h3 className="text-xl font-bold text-on-surface">{ticket.title}</h3>
-                <span className={`px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                  ticket.priority === 'High' ? 'bg-error-container text-on-error-container' : 
-                  ticket.priority === 'Medium' ? 'bg-secondary-container text-on-secondary-container' : 
-                  'bg-outline-variant/30 text-on-surface-variant'
-                }`}>
-                  {ticket.priority} Priority
+            <span className="text-xs uppercase tracking-widest">Fast-Track</span>
+          </button>
+          <button className="flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-primary to-primary-container text-on-primary p-6 rounded-xl font-bold active:scale-95 transition-all shadow-lg hover:shadow-primary/20 group">
+            <div className="p-3 bg-white/20 rounded-full text-white">
+              <Plus size={24} />
+            </div>
+            <span className="text-xs uppercase tracking-widest">New Ticket</span>
+          </button>
+        </div>
+      </section>
+
+      <div className="flex flex-col lg:flex-row gap-6 items-center justify-between bg-surface-container-low p-4 rounded-2xl border border-outline-variant/10">
+        <div className="relative w-full lg:w-80">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant" size={18} />
+          <input 
+            type="text" 
+            placeholder="Search tickets..." 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-surface-container-lowest border-none rounded-xl pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-primary transition-all"
+          />
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-6 w-full lg:w-auto">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mr-2">Filter:</span>
+            {['All', 'Open', 'Closed'].map((f) => (
+              <button 
+                key={f}
+                onClick={() => setFilter(f as any)}
+                className={`px-4 py-2 rounded-lg text-xs font-bold border transition-all ${
+                  filter === f 
+                    ? 'bg-primary text-on-primary border-primary shadow-sm' 
+                    : 'bg-surface-container-lowest text-on-surface-variant border-outline-variant/10 hover:border-primary/30'
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+
+          <div className="h-6 w-px bg-outline-variant/20 hidden sm:block"></div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mr-2">Sort by:</span>
+            <button className="px-4 py-2 bg-surface-container-lowest rounded-lg text-xs font-bold border border-outline-variant/10 hover:border-primary/30 transition-all text-primary border-primary/20">Latest</button>
+            <button className="px-4 py-2 bg-surface-container-lowest rounded-lg text-xs font-bold border border-outline-variant/10 hover:border-primary/30 transition-all text-on-surface-variant">Priority</button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-4">
+        {filteredTickets.length > 0 ? filteredTickets.map(ticket => (
+          <div 
+            key={ticket.id} 
+            onClick={() => onTicketClick(ticket.id)}
+            className="bg-surface-container-lowest p-6 md:p-8 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-6 hover:bg-surface-container-low transition-colors group cursor-pointer border border-transparent hover:border-primary/10"
+          >
+            <div className="flex items-start gap-6">
+              <div className="mt-1">
+                {ticket.status === 'Open' ? (
+                  <span className="w-3 h-3 rounded-full bg-primary block relative">
+                    <span className="absolute inset-0 w-3 h-3 rounded-full bg-primary animate-ping opacity-75"></span>
+                  </span>
+                ) : ticket.status === 'In Progress' ? (
+                  <span className="w-3 h-3 rounded-full bg-secondary block"></span>
+                ) : (
+                  <CheckCircle className="text-outline" size={20} />
+                )}
+              </div>
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h3 className="text-xl font-bold text-on-surface group-hover:text-primary transition-colors">{ticket.title}</h3>
+                  <span className={`px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                    ticket.priority === 'High' ? 'bg-error-container text-on-error-container' : 
+                    ticket.priority === 'Medium' ? 'bg-secondary-container text-on-secondary-container' : 
+                    'bg-outline-variant/30 text-on-surface-variant'
+                  }`}>
+                    {ticket.priority} Priority
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 text-on-surface-variant text-sm">
+                  <span className="flex items-center gap-1 font-medium"><Tag size={14} /> {ticket.id}</span>
+                  <span className="flex items-center gap-1"><History size={14} /> Updated {ticket.updatedAt}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="hidden md:flex flex-col items-end">
+                <span className="text-[10px] text-on-surface-variant font-label uppercase tracking-widest mb-1">Status</span>
+                <span className={`font-bold ${ticket.status === 'Open' ? 'text-primary' : ticket.status === 'In Progress' ? 'text-secondary' : 'text-on-surface-variant'}`}>
+                  {ticket.status}
                 </span>
               </div>
-              <div className="flex items-center gap-4 text-on-surface-variant text-sm">
-                <span className="flex items-center gap-1 font-medium"><Tag size={14} /> {ticket.id}</span>
-                <span className="flex items-center gap-1"><History size={14} /> Updated {ticket.updatedAt}</span>
-              </div>
+              <ChevronRight className="text-outline group-hover:text-primary transition-colors" />
             </div>
           </div>
-          <div className="flex items-center gap-6">
-            <div className="hidden md:flex flex-col items-end">
-              <span className="text-[10px] text-on-surface-variant font-label uppercase tracking-widest mb-1">Status</span>
+        )) : (
+          <div className="py-20 text-center bg-surface-container-low rounded-2xl border border-dashed border-outline-variant/30">
+            <div className="w-16 h-16 bg-surface-container-highest rounded-full flex items-center justify-center mx-auto mb-4 text-on-surface-variant">
+              <Search size={32} />
+            </div>
+            <h3 className="text-xl font-bold mb-2">No tickets found</h3>
+            <p className="text-on-surface-variant">Try adjusting your filters or search query.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const TicketDetailPage = ({ ticketId, onBack }: { ticketId: string, onBack: () => void }) => {
+  const ticket = MOCK_TICKETS.find(t => t.id === ticketId);
+  const responses = MOCK_TICKET_RESPONSES[ticketId] || [];
+
+  if (!ticket) return null;
+
+  return (
+    <div className="space-y-8">
+      <button 
+        onClick={onBack}
+        className="flex items-center gap-2 text-on-surface-variant hover:text-primary font-bold transition-colors group"
+      >
+        <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+        <span>Back to Tickets</span>
+      </button>
+
+      <div className="bg-surface-container-lowest rounded-2xl p-8 shadow-sm border border-outline-variant/10">
+        <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-8">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-black font-headline text-on-surface">{ticket.title}</h1>
+              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                ticket.priority === 'High' ? 'bg-error-container text-on-error-container' : 
+                ticket.priority === 'Medium' ? 'bg-secondary-container text-on-secondary-container' : 
+                'bg-outline-variant/30 text-on-surface-variant'
+              }`}>
+                {ticket.priority} Priority
+              </span>
+            </div>
+            <div className="flex items-center gap-4 text-on-surface-variant text-sm">
+              <span className="font-bold">{ticket.id}</span>
+              <span>•</span>
+              <span className="flex items-center gap-1"><History size={14} /> Last updated {ticket.updatedAt}</span>
+              <span>•</span>
               <span className={`font-bold ${ticket.status === 'Open' ? 'text-primary' : ticket.status === 'In Progress' ? 'text-secondary' : 'text-on-surface-variant'}`}>
                 {ticket.status}
               </span>
             </div>
-            <ChevronRight className="text-outline group-hover:text-primary transition-colors" />
+          </div>
+          <div className="flex gap-2">
+            <button className="bg-surface-container-highest text-on-surface px-6 py-3 rounded-lg font-bold hover:bg-surface-container-high transition-colors">Close Ticket</button>
+            <button className="bg-primary text-on-primary px-6 py-3 rounded-lg font-bold shadow-lg hover:scale-105 transition-transform">Reply</button>
           </div>
         </div>
-      ))}
+
+        <div className="space-y-6">
+          {responses.map((resp, i) => (
+            <div key={i} className={`flex flex-col ${resp.role === 'user' ? 'items-end' : 'items-start'}`}>
+              <div className={`max-w-[80%] p-6 rounded-2xl ${
+                resp.role === 'user' 
+                  ? 'bg-primary text-on-primary rounded-tr-none' 
+                  : 'bg-surface-container-low text-on-surface rounded-tl-none border border-outline-variant/10'
+              }`}>
+                <div className="flex items-center justify-between gap-8 mb-3">
+                  <span className="font-bold text-sm">{resp.sender}</span>
+                  <span className={`text-[10px] opacity-70 ${resp.role === 'user' ? 'text-on-primary' : 'text-on-surface-variant'}`}>{resp.time}</span>
+                </div>
+                <p className="leading-relaxed">{resp.message}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-12 pt-8 border-t border-outline-variant/10">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-primary font-bold">AS</div>
+            <span className="font-bold">Alex Sterling</span>
+          </div>
+          <textarea 
+            placeholder="Type your message here..."
+            className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-6 min-h-[150px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all mb-4"
+          />
+          <div className="flex justify-between items-center">
+            <button className="flex items-center gap-2 text-on-surface-variant hover:text-primary font-bold transition-colors">
+              <Plus size={18} />
+              <span>Attach Files</span>
+            </button>
+            <button className="bg-primary text-on-primary px-10 py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-lg hover:scale-105 transition-transform active:scale-95">Send Reply</button>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const StatusPage = () => (
   <div className="space-y-12">
@@ -795,6 +1314,263 @@ const ActivityLogPage = () => (
     </div>
   </div>
 );
+
+const ProfilePage = () => {
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [isGeneralDataExpanded, setIsGeneralDataExpanded] = useState(false);
+
+  const countries = [
+    "Afghanistan", "Albania", "Algeria", "American Samoa", "Andorra", "Angola", "Anguilla", "Antarctica", "Antigua and Barbuda", "Argentina", "Armenia", "Aruba", "Australia", "Austria", "Azerbaidjan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bermuda", "Bhutan", "Bolivia", "Bosnia-Herzegovina", "Botswana", "Bouvet Island", "Brazil", "British Indian Ocean Territory", "Brunei Darussalam", "Bulgaria", "Burkina Faso", "Burundi", "Cambodia", "Cameroon", "Canada", "Cape Verde", "Cayman Islands", "Central African Republic", "Chad", "Chile", "China", "Christmas Island", "Cocos (Keeling) Islands", "Colombia", "Comoros", "Congo", "Cook Islands", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "East Timor", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Ethiopia", "Falkland Islands", "Faroe Islands", "Fiji", "Finland", "France", "France (European Territory)", "French Guyana", "French Southern Territories", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Gibraltar", "Great Britain", "Greece", "Greenland", "Grenada", "Guadeloupe (French)", "Guam (USA)", "Guatemala", "Guinea", "Guinea Bissau", "Guyana", "Haiti", "Heard and McDonald Islands", "Honduras", "Hong Kong", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Ivory Coast (Cote D`Ivoire)", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Macau", "Macedonia", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Martinique (French)", "Mauritania", "Mauritius", "Mayotte", "Mexico", "Micronesia", "Moldavia", "Monaco", "Mongolia", "Montserrat", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands", "Netherlands Antilles", "Neutral Zone", "New Caledonia (French)", "New Zealand", "Nicaragua", "Niger", "Nigeria", "Niue", "Norfolk Island", "North Korea", "Northern Mariana Islands", "Norway", "Oman", "Pakistan", "Palau", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Pitcairn Island", "Poland", "Polynesia (French)", "Portugal", "Puerto Rico", "Qatar", "Reunion (French)", "Romania", "Russian Federation", "Rwanda", "S. Georgia & S. Sandwich Isls.", "Saint Helena", "Saint Kitts & Nevis Anguilla", "Saint Lucia", "Saint Pierre and Miquelon", "Saint Tome and Principe", "Saint Vincent & Grenadines", "Samoa", "San Marino", "Saudi Arabia", "Senegal", "Seychelles", "Sierra Leone", "Singapore", "Slovak Republic", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "Spain", "Sri Lanka", "Sudan", "Suriname", "Svalbard and Jan Mayen Islands", "Swaziland", "Sweden", "Switzerland", "Syria", "Tadjikistan", "Taiwan", "Tanzania", "Thailand", "Togo", "Tokelau", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Turks and Caicos Islands", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "USA Minor Outlying Islands", "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City State", "Venezuela", "Vietnam", "Virgin Islands (British)", "Virgin Islands (USA)", "Wallis and Futuna Islands", "Western Sahara", "Yemen", "Zaire", "Zambia", "Zimbabwe"
+  ];
+
+  return (
+    <div className="space-y-12 max-w-6xl mx-auto">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+        <div className="max-w-2xl">
+          <span className="font-label text-xs tracking-widest uppercase text-primary font-bold mb-4 block">Account Settings</span>
+          <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">User Profile</h1>
+          <p className="text-on-surface-variant text-lg leading-relaxed">Manage your personal information, security preferences, and account access.</p>
+        </div>
+        <div className="flex items-center gap-4 bg-surface-container-low p-4 rounded-2xl border border-outline-variant/10">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+            <UserCircle size={40} />
+          </div>
+          <div>
+            <h3 className="font-bold text-lg">Alex Sterling</h3>
+            <p className="text-xs text-on-surface-variant font-medium uppercase tracking-widest">Premium Member</p>
+          </div>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          {/* Personal Data */}
+          <section className="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/10 shadow-sm">
+            <h2 className="text-xl font-bold font-headline mb-8 flex items-center gap-3">
+              <UserCircle className="text-primary" size={24} />
+              Personal Information
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Full Name</label>
+                <input type="text" defaultValue="Alex Sterling" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Email Address</label>
+                <input type="email" defaultValue="alex@sterling.com" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Phone Number</label>
+                <input type="tel" defaultValue="+1 (555) 123-4567" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+              </div>
+            </div>
+
+            <AnimatePresence>
+              {isGeneralDataExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="pt-8 border-t border-outline-variant/10 mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Primeiro Nome</label>
+                      <input type="text" placeholder="Seu primeiro nome" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Sobre Nome</label>
+                      <input type="text" placeholder="Seu sobrenome" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Endereço</label>
+                      <input type="text" placeholder="Rua, número, apto" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Bairro</label>
+                      <input type="text" placeholder="Seu bairro" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Empresa</label>
+                      <input type="text" placeholder="Nome da empresa" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Cidade</label>
+                      <input type="text" placeholder="Sua cidade" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Pais</label>
+                      <select className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all">
+                        {countries.map(country => (
+                          <option key={country} value={country}>{country}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">CEP</label>
+                      <input type="text" placeholder="00000-000" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Telefone</label>
+                      <input type="tel" placeholder="+55 (00) 00000-0000" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">CNPJ</label>
+                      <input type="text" placeholder="00.000.000/0000-00" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">CPF</label>
+                      <input type="text" placeholder="000.000.000-00" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Nascimento</label>
+                      <input type="date" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Domínio</label>
+                      <input type="text" placeholder="exemplo.com.br" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="flex flex-wrap gap-4 mt-8">
+              <button 
+                onClick={() => setIsGeneralDataExpanded(!isGeneralDataExpanded)}
+                className="px-8 py-3 bg-surface-container-highest text-on-surface rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center gap-2"
+              >
+                {isGeneralDataExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                Dados Gerais
+              </button>
+              <button className="px-8 py-3 bg-primary text-on-primary rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-primary/20">
+                Save Changes
+              </button>
+            </div>
+          </section>
+
+          {/* Password Management */}
+          <section className="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/10 shadow-sm">
+            <h2 className="text-xl font-bold font-headline mb-8 flex items-center gap-3">
+              <Key className="text-secondary" size={24} />
+              Security & Password
+            </h2>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Current Password</label>
+                <div className="relative">
+                  <input 
+                    type={showCurrentPass ? "text" : "password"} 
+                    defaultValue="password123" 
+                    className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all pr-12" 
+                  />
+                  <button 
+                    onClick={() => setShowCurrentPass(!showCurrentPass)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors"
+                  >
+                    {showCurrentPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">New Password</label>
+                  <div className="relative">
+                    <input 
+                      type={showNewPass ? "text" : "password"} 
+                      placeholder="Enter new password" 
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all pr-12" 
+                    />
+                    <button 
+                      onClick={() => setShowNewPass(!showNewPass)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors"
+                    >
+                      {showNewPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Confirm New Password</label>
+                  <input type="password" placeholder="Confirm new password" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-4 pt-4">
+                <button className="px-6 py-3 bg-primary text-on-primary rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-primary/20">
+                  Update Password
+                </button>
+                <button className="px-6 py-3 bg-surface-container-highest text-on-surface rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all">
+                  Recover Password
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div className="space-y-8">
+          {/* Security Status */}
+          <section className="bg-surface-container-low p-8 rounded-2xl border border-outline-variant/10">
+            <h2 className="text-lg font-bold font-headline mb-6 flex items-center gap-3">
+              <ShieldCheck className="text-primary" size={20} />
+              Security Health
+            </h2>
+            <div className="space-y-6">
+              <div className="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl border border-primary/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+                  <span className="text-sm font-bold">2FA Enabled</span>
+                </div>
+                <button className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">Manage</button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex justify-between text-xs">
+                  <span className="text-on-surface-variant font-medium">Security Score</span>
+                  <span className="font-bold text-primary">92/100</span>
+                </div>
+                <div className="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
+                  <div className="h-full bg-primary w-[92%]"></div>
+                </div>
+              </div>
+
+              <button className="w-full py-4 bg-surface-container-highest text-on-surface font-bold rounded-xl text-xs uppercase tracking-widest hover:bg-primary hover:text-on-primary transition-all active:scale-95 flex items-center justify-center gap-2">
+                <Settings size={16} />
+                Advanced Security
+              </button>
+            </div>
+          </section>
+
+          {/* Recent Logins */}
+          <section className="bg-surface-container-low p-8 rounded-2xl border border-outline-variant/10">
+            <h2 className="text-lg font-bold font-headline mb-6 flex items-center gap-3">
+              <History className="text-secondary" size={20} />
+              Recent Logins
+            </h2>
+            <div className="space-y-4">
+              {[
+                { device: 'Chrome / macOS', location: 'San Francisco, US', time: 'Active Now', current: true },
+                { device: 'Safari / iPhone 15', location: 'San Francisco, US', time: '2h ago', current: false },
+                { device: 'Firefox / Windows', location: 'London, UK', time: '2d ago', current: false },
+              ].map((login, i) => (
+                <div key={i} className="flex items-start justify-between py-3 border-b border-outline-variant/10 last:border-0">
+                  <div>
+                    <p className="text-sm font-bold">{login.device}</p>
+                    <p className="text-[10px] text-on-surface-variant uppercase tracking-widest">{login.location}</p>
+                  </div>
+                  <span className={`text-[10px] font-bold ${login.current ? 'text-primary' : 'text-on-surface-variant'}`}>{login.time}</span>
+                </div>
+              ))}
+            </div>
+            <button className="w-full mt-6 py-3 text-[10px] font-bold uppercase tracking-widest text-primary hover:underline">
+              View All History
+            </button>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ProjectsPage = () => (
   <div className="space-y-12">
@@ -967,10 +1743,214 @@ const ProjectsPage = () => (
   </div>
 );
 
+const ServiceManagePage = ({ serviceId, onBack }: { serviceId: string, onBack: () => void }) => {
+  const service = MOCK_SERVICES.find(s => s.id === serviceId);
+  const [showPassword, setShowPassword] = useState(false);
+
+  if (!service) return <div>Service not found</div>;
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    // In a real app, we'd show a toast here
+  };
+
+  return (
+    <div className="space-y-12">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-6">
+          <button 
+            onClick={onBack}
+            className="p-3 bg-surface-container-low rounded-xl text-on-surface-variant hover:text-primary transition-colors"
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <div>
+            <span className="font-label text-xs tracking-widest uppercase text-primary font-bold mb-1 block">Management Panel</span>
+            <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface">{service.name}</h1>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${
+            service.status === 'active' ? 'bg-primary/10 text-primary' : 'bg-error-container text-on-error-container'
+          }`}>
+            {service.status}
+          </span>
+          <span className="text-on-surface-variant font-medium text-sm">{service.host}</span>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Access Credentials */}
+        <div className="lg:col-span-2 space-y-8">
+          <div className="bg-surface-container-low rounded-2xl p-8 border border-outline-variant/10">
+            <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
+              <Lock className="text-primary" size={24} />
+              Access Credentials
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Username</label>
+                <div className="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl border border-outline-variant/5">
+                  <span className="font-mono font-bold text-primary">{service.accessInfo.username}</span>
+                  <button onClick={() => copyToClipboard(service.accessInfo.username)} className="text-on-surface-variant hover:text-primary transition-colors">
+                    <Copy size={18} />
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Password</label>
+                <div className="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl border border-outline-variant/5">
+                  <span className="font-mono font-bold text-primary">
+                    {showPassword ? 'm0n0l1th_P@ss_2024' : '••••••••••••'}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setShowPassword(!showPassword)} className="text-on-surface-variant hover:text-primary transition-colors">
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                    <button onClick={() => copyToClipboard('m0n0l1th_P@ss_2024')} className="text-on-surface-variant hover:text-primary transition-colors">
+                      <Copy size={18} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Network & DNS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="bg-surface-container-low rounded-2xl p-8 border border-outline-variant/10">
+              <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
+                <Globe className="text-secondary" size={24} />
+                Network Information
+              </h3>
+              <div className="space-y-6">
+                <div className="flex justify-between items-center p-4 bg-surface-container-lowest rounded-xl">
+                  <div>
+                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Main IP Address</p>
+                    <p className="font-mono font-bold text-primary">{service.accessInfo.mainIp}</p>
+                  </div>
+                  <button onClick={() => copyToClipboard(service.accessInfo.mainIp)} className="text-on-surface-variant hover:text-primary">
+                    <Copy size={18} />
+                  </button>
+                </div>
+                {service.accessInfo.additionalIps && (
+                  <div className="p-4 bg-surface-container-lowest rounded-xl">
+                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-3">Additional IPs</p>
+                    <div className="space-y-2">
+                      {service.accessInfo.additionalIps.map(ip => (
+                        <div key={ip} className="flex justify-between items-center">
+                          <span className="font-mono text-sm">{ip}</span>
+                          <button onClick={() => copyToClipboard(ip)} className="text-on-surface-variant hover:text-primary">
+                            <Copy size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-surface-container-low rounded-2xl p-8 border border-outline-variant/10">
+              <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
+                <Database className="text-primary" size={24} />
+                DNS Nameservers
+              </h3>
+              <div className="space-y-4">
+                {service.accessInfo.nameservers.map((ns, i) => (
+                  <div key={ns} className="flex justify-between items-center p-4 bg-surface-container-lowest rounded-xl">
+                    <div>
+                      <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">NS {i + 1}</p>
+                      <p className="font-mono text-sm font-bold">{ns}</p>
+                    </div>
+                    <button onClick={() => copyToClipboard(ns)} className="text-on-surface-variant hover:text-primary">
+                      <Copy size={18} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar: Control Panels & Specs */}
+        <div className="space-y-8">
+          <div className="bg-primary rounded-2xl p-8 text-on-primary shadow-lg shadow-primary/20">
+            <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
+              <Terminal size={24} />
+              Control Panels
+            </h3>
+            <div className="space-y-4">
+              {service.accessInfo.cpanelUrl && (
+                <a 
+                  href={service.accessInfo.cpanelUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center font-black text-xs">cP</div>
+                    <span className="font-bold">cPanel Login</span>
+                  </div>
+                  <ExternalLink size={18} className="opacity-50 group-hover:opacity-100 transition-opacity" />
+                </a>
+              )}
+              {service.accessInfo.directAdminUrl && (
+                <a 
+                  href={service.accessInfo.directAdminUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center font-black text-xs">DA</div>
+                    <span className="font-bold">DirectAdmin</span>
+                  </div>
+                  <ExternalLink size={18} className="opacity-50 group-hover:opacity-100 transition-opacity" />
+                </a>
+              )}
+              <button className="w-full mt-4 py-3 bg-surface-container-lowest text-primary rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform">
+                Webmail Access
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-surface-container-low rounded-2xl p-8 border border-outline-variant/10">
+            <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
+              <Info className="text-secondary" size={24} />
+              Service Specs
+            </h3>
+            <div className="space-y-4">
+              {Object.entries(service.accessInfo.specs).map(([key, value]) => (
+                <div key={key} className="flex justify-between items-center py-3 border-b border-outline-variant/10 last:border-0">
+                  <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">{key}</span>
+                  <span className="font-bold text-sm">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- Main App ---
 
 export default function MonolithApp() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+
+  const handleManageService = (id: string) => {
+    setSelectedServiceId(id);
+    setCurrentPage('service-manage');
+  };
+
+  const handleTicketClick = (id: string) => {
+    setSelectedTicketId(id);
+    setCurrentPage('ticket-detail');
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -985,12 +1965,33 @@ export default function MonolithApp() {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-            {currentPage === 'dashboard' && <DashboardPage />}
+            {currentPage === 'dashboard' && (
+              <DashboardPage 
+                onManageService={handleManageService} 
+                onViewActivity={() => setCurrentPage('activity')} 
+                onOpenTicket={() => setCurrentPage('support')}
+                onViewStatus={() => setCurrentPage('status')}
+                onTicketClick={handleTicketClick}
+              />
+            )}
+            {currentPage === 'products' && <ProductsPage />}
             {currentPage === 'billing' && <BillingPage />}
-            {currentPage === 'support' && <SupportPage />}
+            {currentPage === 'support' && <SupportPage onTicketClick={handleTicketClick} />}
+            {currentPage === 'ticket-detail' && selectedTicketId && (
+              <TicketDetailPage ticketId={selectedTicketId} onBack={() => setCurrentPage('support')} />
+            )}
             {currentPage === 'status' && <StatusPage />}
             {currentPage === 'activity' && <ActivityLogPage />}
             {currentPage === 'projects' && <ProjectsPage />}
+            {currentPage === 'profile' && <ProfilePage />}
+            {currentPage === 'terms' && <TermsOfServicePage onBack={() => setCurrentPage('dashboard')} />}
+            {currentPage === 'privacy' && <PrivacyPolicyPage onBack={() => setCurrentPage('dashboard')} />}
+            {currentPage === 'service-manage' && selectedServiceId && (
+              <ServiceManagePage 
+                serviceId={selectedServiceId} 
+                onBack={() => setCurrentPage('dashboard')} 
+              />
+            )}
             {(currentPage === 'services' || currentPage === 'domains') && (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <div className="bg-surface-container-low p-12 rounded-full mb-6">
@@ -1010,7 +2011,11 @@ export default function MonolithApp() {
         </AnimatePresence>
       </main>
 
-      <Footer />
+      <Footer 
+        onStatusClick={() => setCurrentPage('status')} 
+        onTermsClick={() => setCurrentPage('terms')}
+        onPrivacyClick={() => setCurrentPage('privacy')}
+      />
     </div>
   );
 }

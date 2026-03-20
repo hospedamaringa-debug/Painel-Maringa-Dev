@@ -21,8 +21,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Monolith Hosting | Billing & Infrastructure',
-  description: 'Manage your high-performance infrastructure and billing with Monolith Hosting.',
+  title: 'HospedaMaringá | Faturamento & Infraestrutura',
+  description: 'Gerencie sua infraestrutura e faturamento de alto desempenho com a HospedaMaringá.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

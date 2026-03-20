@@ -279,7 +279,7 @@ const Navbar = ({ currentPage, setCurrentPage }: { currentPage: Page, setCurrent
           className="text-2xl font-black tracking-tighter text-primary font-brand cursor-pointer"
           onClick={() => setCurrentPage('dashboard')}
         >
-          Monolith Hosting
+          HospedaMaringá
         </div>
 
         <div className="hidden md:flex items-center space-x-8">
@@ -389,7 +389,7 @@ const Navbar = ({ currentPage, setCurrentPage }: { currentPage: Page, setCurrent
 const Footer = ({ onStatusClick, onTermsClick, onPrivacyClick }: { onStatusClick: () => void, onTermsClick: () => void, onPrivacyClick: () => void }) => (
   <footer className="bg-surface-container-low py-12 border-t border-outline-variant/10">
     <div className="flex flex-col md:flex-row justify-between items-center px-6 md:px-10 w-full max-w-[1920px] mx-auto gap-8">
-      <div className="text-lg font-bold text-primary font-brand">Monolith Infrastructure</div>
+      <div className="text-lg font-bold text-primary font-brand">HospedaMaringá</div>
       <div className="flex flex-wrap justify-center gap-6 md:gap-8">
         {['Termos de Serviço', 'Política de Privacidade', 'Página de Status', 'Mapa da Rede'].map((item) => (
           <button 
@@ -406,7 +406,7 @@ const Footer = ({ onStatusClick, onTermsClick, onPrivacyClick }: { onStatusClick
         ))}
       </div>
       <div className="text-on-surface-variant font-medium text-xs opacity-60">
-        © 2024 Monolith Infrastructure. Todos os direitos reservados.
+        © 2024 HospedaMaringá. Todos os direitos reservados.
       </div>
     </div>
   </footer>
@@ -431,7 +431,7 @@ const TermsOfServicePage = ({ onBack }: { onBack: () => void }) => (
     <div className="bg-surface-container-lowest p-8 md:p-12 rounded-2xl border border-outline-variant/10 space-y-8 text-on-surface-variant leading-relaxed">
       <section className="space-y-4">
         <h2 className="text-2xl font-bold text-on-surface font-headline">1. Aceitação dos Termos</h2>
-        <p>Ao acessar e usar a plataforma Monolith Infrastructure, você concorda em cumprir e estar vinculado a estes Termos de Serviço. Se você não concordar com estes termos, por favor, não use nossos serviços.</p>
+        <p>Ao acessar e usar a plataforma HospedaMaringá, você concorda em cumprir e estar vinculado a estes Termos de Serviço. Se você não concordar com estes termos, por favor, não use nossos serviços.</p>
       </section>
 
       <section className="space-y-4">
@@ -451,7 +451,7 @@ const TermsOfServicePage = ({ onBack }: { onBack: () => void }) => (
 
       <section className="space-y-4">
         <h2 className="text-2xl font-bold text-on-surface font-headline">5. Limitação de Responsabilidade</h2>
-        <p>A Monolith Infrastructure não será responsável por quaisquer danos indiretos, incidentais, especiais, consequenciais ou punitivos resultantes do seu uso ou incapacidade de usar o serviço.</p>
+        <p>A HospedaMaringá não será responsável por quaisquer danos indiretos, incidentais, especiais, consequenciais ou punitivos resultantes do seu uso ou incapacidade de usar o serviço.</p>
       </section>
     </div>
   </div>
@@ -643,7 +643,7 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
     <div className="space-y-12">
       <div>
         <label className="text-primary font-bold tracking-widest uppercase text-xs mb-2 block">Painel de Infraestrutura</label>
-        <h1 className="font-headline text-5xl font-extrabold tracking-tighter text-on-surface">Visão Geral da Nuvem</h1>
+        <h1 className="font-headline text-5xl font-extrabold tracking-tighter text-primary">Bem vindo, Alex Sterling</h1>
       </div>
 
       <div className="grid grid-cols-12 gap-8">

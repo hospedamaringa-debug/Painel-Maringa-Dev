@@ -56,6 +56,9 @@ import {
   Send
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { GoogleGenAI } from '@google/genai';
+import ReCAPTCHA from 'react-google-recaptcha';
+import { AI_GREETING, AI_SYSTEM_INSTRUCTION } from '../lib/ai-config';
 
 // --- Types ---
 
@@ -182,15 +185,15 @@ const MOCK_TICKETS: SupportTicket[] = [
 const MOCK_TICKET_RESPONSES: Record<string, { sender: string, role: 'support' | 'user', message: string, time: string }[]> = {
   '#MN-8291': [
     { sender: 'Alex Sterling', role: 'user', message: 'Estou vendo picos significativos de latência no meu cluster de banco de dados US-EAST-1. Consultas que normalmente levam 10ms agora estão levando mais de 500ms.', time: '20m atrás' },
-    { sender: 'Suporte Monolith (Sarah)', role: 'support', message: 'Olá Alex, identificamos um problema de congestionamento de rede na região US-EAST-1 afetando alguns clusters NVMe. Nossa equipe de engenharia está redirecionando o tráfego agora. Você deve ver o desempenho voltar ao normal nos próximos 10 minutos.', time: '14m atrás' },
+    { sender: 'Suporte Hospeda Maringá (Sarah)', role: 'support', message: 'Olá Alex, identificamos um problema de congestionamento de rede na região US-EAST-1 afetando alguns clusters NVMe. Nossa equipe de engenharia está redirecionando o tráfego agora. Você deve ver o desempenho voltar ao normal nos próximos 10 minutos.', time: '14m atrás' },
   ],
   '#MN-8104': [
     { sender: 'Alex Sterling', role: 'user', message: 'A renovação automática do meu certificado SSL em dev-stack.net falhou com um erro de timeout. Você pode verificar o status do desafio ACME?', time: '3h atrás' },
-    { sender: 'Suporte Monolith (Mike)', role: 'support', message: 'Verificando agora. Parece que seu provedor de DNS está bloqueando nossas solicitações de validação. Certifique-se de que a porta 53 esteja aberta para nossa faixa de IP ou adicione o registro TXT manualmente para ignorar a verificação automatizada.', time: '2h atrás' },
+    { sender: 'Suporte Hospeda Maringá (Mike)', role: 'support', message: 'Verificando agora. Parece que seu provedor de DNS está bloqueando nossas solicitações de validação. Certifique-se de que a porta 53 esteja aberta para nossa faixa de IP ou adicione o registro TXT manualmente para ignorar a verificação automatizada.', time: '2h atrás' },
   ],
   '#MN-7922': [
     { sender: 'Alex Sterling', role: 'user', message: 'Fui cobrado duas vezes pela Fatura #8292. Você pode verificar e emitir um reembolso para a transação duplicada?', time: '12 de Dez, 2023' },
-    { sender: 'Faturamento Monolith', role: 'support', message: 'Verificamos a cobrança duplicada. Um reembolso foi processado e deve aparecer em sua conta dentro de 3 a 5 dias úteis. Pedimos desculpas pelo inconveniente.', time: '12 de Dez, 2023' },
+    { sender: 'Faturamento Hospeda Maringá', role: 'support', message: 'Verificamos a cobrança duplicada. Um reembolso foi processado e deve aparecer em sua conta dentro de 3 a 5 dias úteis. Pedimos desculpas pelo inconveniente.', time: '12 de Dez, 2023' },
   ]
 };
 
@@ -250,7 +253,7 @@ const MOCK_PROJECTS: Project[] = [
   {
     id: 'proj_1',
     name: 'Migração de Infraestrutura',
-    description: 'Movendo sistemas legados para os novos clusters Monolith NVMe.',
+    description: 'Movendo sistemas legados para os novos clusters Hospeda Maringá NVMe.',
     progress: 65,
     members: 8,
     tasks: [
@@ -1004,7 +1007,7 @@ const BillingPage = () => {
                     <X size={24} />
                   </button>
                 </div>
-                <p className="text-on-primary/70 text-sm">Adicione saldo à sua conta Monolith</p>
+                <p className="text-on-primary/70 text-sm">Adicione saldo à sua conta Hospeda Maringá</p>
               </div>
 
               <div className="p-8 space-y-6">
@@ -1496,7 +1499,7 @@ const ActivityLogPage = ({ initialCategory = 'Toda Atividade' }: { initialCatego
         <div className="max-w-2xl">
           <span className="font-label text-xs tracking-widest uppercase text-on-surface-variant font-bold mb-4 block">Trilha de Auditoria</span>
           <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Log de Atividades</h1>
-          <p className="text-on-surface-variant text-lg leading-relaxed">Um histórico detalhado de todas as ações realizadas em sua conta e infraestrutura Monolith.</p>
+          <p className="text-on-surface-variant text-lg leading-relaxed">Um histórico detalhado de todas as ações realizadas em sua conta e infraestrutura Hospeda Maringá.</p>
         </div>
         <div className="flex items-center gap-4 bg-surface-container-low p-2 rounded-xl border border-outline-variant/10">
           <div className="relative">
@@ -2226,7 +2229,24 @@ const ServiceManagePage = ({ serviceId, onBack }: { serviceId: string, onBack: (
 
 const SupportWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
+  const [messages, setMessages] = useState<{role: 'user' | 'model', text: string}[]>([
+    { role: 'model', text: AI_GREETING }
+  ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRecaptchaVerified, setIsRecaptchaVerified] = useState(false);
+  
   const widgetRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<any>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isAIChatOpen]);
 
   useEffect(() => {
     // Tawk.to Script Integration
@@ -2285,9 +2305,110 @@ const SupportWidget = () => {
       name: 'Assistente IA', 
       icon: <Bot size={24} className="text-secondary" />, 
       description: 'Suporte inteligente 24/7',
-      action: () => console.log('Abrir IA')
+      action: () => {
+        setIsOpen(false);
+        setIsAIChatOpen(true);
+      }
     }
   ];
+
+  const handleRecaptchaChange = async (token: string | null) => {
+    if (!token) {
+      setIsRecaptchaVerified(false);
+      return;
+    }
+    
+    try {
+      const response = await fetch('/api/verify-recaptcha', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setIsRecaptchaVerified(true);
+      } else {
+        setIsRecaptchaVerified(false);
+        if (recaptchaRef.current) {
+          recaptchaRef.current.reset();
+        }
+      }
+    } catch (error) {
+      console.error('Error verifying reCAPTCHA:', error);
+      setIsRecaptchaVerified(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!input.trim() || !isRecaptchaVerified) return;
+    
+    const userText = input.trim();
+    setMessages(prev => [...prev, { role: 'user', text: userText }]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      if (!chatRef.current) {
+        // Prioriza a chave customizada configurada nos Secrets, senão usa a chave fornecida pelo usuário, senão a padrão da plataforma
+        const apiKey = process.env.NEXT_PUBLIC_CUSTOM_GEMINI_KEY || 'AIzaSyAP5kcApgnuFZY-ijMV8g5GDE6t5hFJcIw' || process.env.NEXT_PUBLIC_GEMINI_API_KEY as string;
+        console.log('Inicializando IA com chave:', apiKey === 'AIzaSyAP5kcApgnuFZY-ijMV8g5GDE6t5hFJcIw' ? 'Hardcoded do Usuário' : (process.env.NEXT_PUBLIC_CUSTOM_GEMINI_KEY ? 'Customizada (Secrets)' : 'Padrão da Plataforma'));
+        const ai = new GoogleGenAI({ apiKey });
+        chatRef.current = ai.chats.create({
+          model: 'gemini-3-flash-preview',
+          config: {
+            systemInstruction: AI_SYSTEM_INSTRUCTION
+          }
+        });
+      }
+
+      let response: any;
+      let retries = 3;
+      let delay = 1000;
+      
+      while (retries > 0) {
+        try {
+          response = await chatRef.current.sendMessage({ message: userText });
+          break;
+        } catch (err: any) {
+          const errorString = err?.toString() || '';
+          const errorMessageStr = err?.message || '';
+          if ((errorString.includes('429') || errorMessageStr.includes('429') || errorString.includes('RESOURCE_EXHAUSTED') || errorMessageStr.includes('RESOURCE_EXHAUSTED')) && retries > 1) {
+            retries--;
+            await new Promise(res => setTimeout(res, delay));
+            delay *= 2;
+          } else {
+            throw err;
+          }
+        }
+      }
+
+      setMessages(prev => [...prev, { role: 'model', text: response?.text || 'Desculpe, não consegui processar sua solicitação.' }]);
+    } catch (error: any) {
+      console.error('Erro ao enviar mensagem:', error);
+      let errorMessage = 'Ocorreu um erro ao conectar com o assistente. Tente novamente mais tarde.';
+      
+      const errorString = error?.toString() || '';
+      const errorMessageStr = error?.message || '';
+      
+      if (errorString.includes('429') || errorMessageStr.includes('429') || errorString.includes('RESOURCE_EXHAUSTED') || errorMessageStr.includes('RESOURCE_EXHAUSTED')) {
+        errorMessage = 'A chave de API (AIzaSyAP5kcApgnuFZY-ijMV8g5GDE6t5hFJcIw) ainda está retornando erro de limite de cota (429). Como você acabou de adicionar o faturamento, pode levar alguns minutos para o Google Cloud atualizar o status da sua conta. Por favor, aguarde uns 5 a 10 minutos e tente novamente.';
+      }
+      
+      setMessages(prev => [...prev, { role: 'model', text: errorMessage }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
   const getStatus = () => {
     const now = new Date();
@@ -2306,7 +2427,93 @@ const SupportWidget = () => {
   return (
     <div className="fixed bottom-8 right-8 z-[100]" ref={widgetRef}>
       <AnimatePresence>
-        {isOpen && (
+        {isAIChatOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 20, transformOrigin: 'bottom right' }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            className="absolute bottom-20 right-0 w-[350px] h-[500px] bg-surface-container-lowest rounded-3xl shadow-2xl border border-outline-variant/10 overflow-hidden flex flex-col"
+          >
+            <div className="bg-secondary p-4 text-on-secondary flex justify-between items-center shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 p-2 rounded-full">
+                  <Bot size={20} />
+                </div>
+                <div>
+                  <h3 className="font-headline font-bold">Assistente IA</h3>
+                  <p className="text-on-secondary/80 text-[10px] flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+                    Online
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsAIChatOpen(false)}
+                className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-surface-container-lowest">
+              {messages.map((msg, idx) => (
+                <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${
+                    msg.role === 'user' 
+                      ? 'bg-primary text-on-primary rounded-tr-sm' 
+                      : 'bg-surface-container-low text-on-surface rounded-tl-sm border border-outline-variant/10'
+                  }`}>
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-surface-container-low text-on-surface p-4 rounded-2xl rounded-tl-sm border border-outline-variant/10 flex gap-1">
+                    <span className="w-2 h-2 bg-outline rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                    <span className="w-2 h-2 bg-outline rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                    <span className="w-2 h-2 bg-outline rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <div className="p-4 bg-surface-container-lowest border-t border-outline-variant/10 shrink-0">
+              {!isRecaptchaVerified && (
+                <div className="mb-3 flex justify-center transform scale-90 origin-bottom">
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    sitekey="6LcpEu0qAAAAADw-N2UeiNua991w-hPfSMK1UuXZ"
+                    onChange={handleRecaptchaChange}
+                    theme="dark"
+                  />
+                </div>
+              )}
+              <div className="relative flex items-center">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={isRecaptchaVerified ? "Digite sua mensagem..." : "Complete o reCAPTCHA primeiro"}
+                  disabled={!isRecaptchaVerified}
+                  className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:border-secondary/50 focus:ring-1 focus:ring-secondary/50 resize-none custom-scrollbar disabled:opacity-50 disabled:cursor-not-allowed"
+                  rows={1}
+                  style={{ minHeight: '44px', maxHeight: '120px' }}
+                />
+                <button 
+                  onClick={handleSendMessage}
+                  disabled={!input.trim() || isLoading || !isRecaptchaVerified}
+                  className="absolute right-2 p-2 text-secondary hover:bg-secondary/10 rounded-lg transition-colors disabled:opacity-50 disabled:hover:bg-transparent"
+                >
+                  <Send size={18} />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {isOpen && !isAIChatOpen && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8, y: 20, transformOrigin: 'bottom right' }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -2347,12 +2554,18 @@ const SupportWidget = () => {
       </AnimatePresence>
 
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (isAIChatOpen) {
+            setIsAIChatOpen(false);
+          } else {
+            setIsOpen(!isOpen);
+          }
+        }}
         className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 hover:scale-110 active:scale-95 ${
-          isOpen ? 'bg-surface-container-lowest text-primary rotate-90' : 'bg-primary text-on-primary'
+          isOpen || isAIChatOpen ? 'bg-surface-container-lowest text-primary rotate-90' : 'bg-primary text-on-primary'
         }`}
       >
-        {isOpen ? <X size={32} /> : <MessageSquare size={32} />}
+        {isOpen || isAIChatOpen ? <X size={32} /> : <MessageSquare size={32} />}
       </button>
     </div>
   );

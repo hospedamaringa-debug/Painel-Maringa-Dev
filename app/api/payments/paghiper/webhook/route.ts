@@ -50,35 +50,64 @@ export async function POST(req: Request) {
     const apiKey = process.env.PAGHIPER_API_KEY || 'apk_47353984-YHjuGjGIXulOvQHNslebMDeHnCLXlDJJ';
     const token = process.env.PAGHIPER_TOKEN || 'IM8MY2F3J0HSSV6QLX6CYI87T0R6A4KU0AM4FX5FWJLK';
 
-    const verifyResponse = await fetch('https://api.paghiper.com/transaction/notification/', {
+    const verifyData = {
+      apiKey,
+      token,
+      notification_id,
+      transaction_id
+    };
+
+    // Tenta primeiro o endpoint de Boleto
+    let verifyResponse = await fetch('https://api.paghiper.com/transaction/notification/', {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        apiKey,
-        token,
-        notification_id,
-        transaction_id
-      })
+      body: JSON.stringify(verifyData)
     });
 
+    let result;
     const contentType = verifyResponse.headers.get("content-type");
     if (contentType && contentType.indexOf("application/json") !== -1) {
-      const result = await verifyResponse.json();
-      if (result.status_request && result.status_request.result === 'success') {
-        const status = result.status_request.status;
-        console.log(`[Webhook PagHiper] Status da Transação ${transaction_id}: ${status}`);
-        return new Response('OK', { status: 200 });
-      } else {
-        console.error('[Webhook PagHiper] Falha ao verificar notificação:', result);
-        return new Response('Erro na verificação', { status: 500 });
-      }
+      result = await verifyResponse.json();
     } else {
       const text = await verifyResponse.text();
-      console.error('[Webhook PagHiper] Resposta não-JSON na verificação:', text);
-      return new Response('Resposta inválida do PagHiper', { status: 502 });
+      console.error('[Webhook PagHiper] Resposta não-JSON na verificação (Boleto):', text);
+      result = { status_request: { result: 'reject', response_message: 'Resposta inválida' } };
+    }
+
+    // Se falhar ou disser que a transação é inválida, tenta o endpoint de PIX
+    if (result?.status_request?.result === 'reject' && 
+        (result.status_request.response_message?.includes('inválida') || 
+         result.status_request.response_message?.includes('não encontrada') ||
+         result.status_request.response_message?.includes('Resposta inválida'))) {
+      
+      const pixVerifyResponse = await fetch('https://pix.paghiper.com/invoice/notification/', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(verifyData)
+      });
+
+      const pixContentType = pixVerifyResponse.headers.get("content-type");
+      if (pixContentType && pixContentType.indexOf("application/json") !== -1) {
+        const pixResult = await pixVerifyResponse.json();
+        if (pixResult?.status_request?.result === 'success') {
+          result = pixResult;
+        }
+      }
+    }
+
+    if (result?.status_request?.result === 'success') {
+      const status = result.status_request.status;
+      console.log(`[Webhook PagHiper] Status da Transação ${transaction_id}: ${status}`);
+      return new Response('OK', { status: 200 });
+    } else {
+      console.error('[Webhook PagHiper] Falha ao verificar notificação:', result);
+      return new Response('Erro na verificação', { status: 500 });
     }
 
   } catch (error) {

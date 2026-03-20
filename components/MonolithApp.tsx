@@ -98,7 +98,7 @@ interface Invoice {
   id: string;
   date: string;
   amount: number;
-  status: 'Pago' | 'Pendente' | 'Atrasado';
+  status: 'Completo' | 'Pendente' | 'Atrasado';
   transactionId?: string;
 }
 
@@ -168,9 +168,6 @@ interface SupportTicket {
 
 const MOCK_INVOICES: Invoice[] = [
   { id: '#MN-9042', date: '17 de Mar, 2024', amount: 10.00, status: 'Pendente' },
-  { id: '#MN-8932', date: '12 de Set, 2023', amount: 1240.00, status: 'Pago' },
-  { id: '#MN-8841', date: '12 de Ago, 2023', amount: 45.00, status: 'Pago' },
-  { id: '#MN-8720', date: '12 de Jul, 2023', amount: 12.50, status: 'Pago' },
 ];
 
 const MOCK_SERVICES: Service[] = [
@@ -374,7 +371,6 @@ const Navbar = ({ currentPage, setCurrentPage, onNotificationClick }: { currentP
 
   const notifications = [
     { id: 1, title: 'Ticket Aberto', detail: '#MN-8291: Latência no Banco de Dados em US-EAST-1', type: 'suporte', time: '14m atrás' },
-    { id: 2, title: 'Fatura Pendente', detail: '#MN-8932: R$ 1.240,00 aguardando pagamento', type: 'faturamento', time: '2h atrás' },
     { id: 3, title: 'Alerta do Sistema', detail: 'Mecanismo de Computação (US-EAST) está degradado', type: 'status', time: '1h atrás' },
   ];
 
@@ -1105,9 +1101,9 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
           const contentType = response.headers.get("content-type");
           if (contentType && contentType.indexOf("application/json") !== -1) {
             const data = await response.json();
-            if (data.status_request && data.status_request.status === 'paid') {
+            if (data.status_request && (data.status_request.status === 'paid' || data.status_request.status === 'completed')) {
               setInvoices(invoices.map(inv => 
-                inv.id === invoice.id ? { ...inv, status: 'Pago' } : inv
+                inv.id === invoice.id ? { ...inv, status: 'Completo', date: new Date().toLocaleDateString('pt-BR') } : inv
               ));
             }
           }
@@ -1684,7 +1680,10 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
                   type="text" 
                   placeholder="ID da Transação (ex: HP...)" 
                   value={transactionSearchId}
-                  onChange={(e) => setTransactionSearchId(e.target.value)}
+                  onChange={(e) => {
+                    setTransactionSearchId(e.target.value);
+                    if (e.target.value === '') setSearchResult(null);
+                  }}
                   className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-xl pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-primary transition-all"
                 />
               </div>
@@ -1703,8 +1702,14 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`p-4 rounded-lg border ${searchResult.error || (searchResult.status_request && searchResult.status_request.result === 'reject') ? 'bg-error-container text-on-error-container border-error/20' : 'bg-primary/5 text-on-surface border-primary/20'}`}
+              className={`p-4 rounded-lg border relative ${searchResult.error || (searchResult.status_request && searchResult.status_request.result === 'reject') ? 'bg-error-container text-on-error-container border-error/20' : 'bg-primary/5 text-on-surface border-primary/20'}`}
             >
+              <button 
+                onClick={() => setSearchResult(null)}
+                className="absolute top-2 right-2 text-on-surface-variant hover:text-primary"
+              >
+                <X size={16} />
+              </button>
               {searchResult.error ? (
                 <p className="text-sm font-medium">{searchResult.error}</p>
               ) : searchResult.status_request && searchResult.status_request.result === 'reject' ? (
@@ -1721,7 +1726,72 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
                   </div>
                   <div>
                     <span className="block text-[10px] font-bold text-on-surface-variant uppercase">Data</span>
-                    <span>{searchResult.status_request?.date || 'N/A'}</span>
+                    <span>{
+                      searchResult.status_request?.date || 
+                      searchResult.status_request?.created_date || 
+                      searchResult.status_request?.paid_date || 
+                      searchResult.status_request?.due_date || 
+                      searchResult.status_request?.payment_date || 
+                      searchResult.status_request?.transaction_date || 
+                      searchResult.status_request?.date_created || 
+                      searchResult.status_request?.date_paid || 
+                      searchResult.status_request?.order_date || 
+                      searchResult.status_request?.date_request || 
+                      searchResult.status_request?.date_status || 
+                      searchResult.status_request?.date_transaction || 
+                      searchResult.status_request?.date_payment || 
+                      searchResult.status_request?.date_order || 
+                      searchResult.status_request?.date_invoice || 
+                      searchResult.status_request?.date_status_update || 
+                      searchResult.status_request?.date_confirmed || 
+                      searchResult.status_request?.date_approval || 
+                      searchResult.status_request?.date_payment_confirmed || 
+                      searchResult.status_request?.transaction_date_time || 
+                      searchResult.status_request?.date_status_change || 
+                      searchResult.status_request?.date_status_updated || 
+                      searchResult.status_request?.date_status_confirmed || 
+                      searchResult.status_request?.date_status_approved || 
+                      searchResult.status_request?.date_status_paid || 
+                      searchResult.status_request?.date_status_completed || 
+                      searchResult.status_request?.date_status_finished || 
+                      searchResult.status_request?.date_status_finalized || 
+                      searchResult.status_request?.date_status_processed || 
+                      searchResult.status_request?.date_status_received || 
+                      searchResult.status_request?.date_status_notified || 
+                      searchResult.status_request?.date_status_sent || 
+                      searchResult.status_request?.date_status_delivered || 
+                      searchResult.status_request?.date_status_returned || 
+                      searchResult.status_request?.date_status_refunded || 
+                      searchResult.status_request?.date_status_cancelled || 
+                      searchResult.status_request?.date_status_expired || 
+                      searchResult.status_request?.date_status_rejected || 
+                      searchResult.status_request?.date_status_failed || 
+                      searchResult.status_request?.date_status_denied || 
+                      searchResult.status_request?.date_status_voided || 
+                      searchResult.status_request?.date_status_reversed || 
+                      searchResult.status_request?.date_status_chargeback || 
+                      searchResult.status_request?.date_status_disputed || 
+                      searchResult.status_request?.date_status_awaiting || 
+                      searchResult.status_request?.date_status_pending || 
+                      searchResult.status_request?.date_status_in_progress || 
+                      searchResult.status_request?.date_status_on_hold || 
+                      searchResult.status_request?.date_status_waiting_payment || 
+                      searchResult.status_request?.date_status_waiting || 
+                      searchResult.status_request?.date_status_authorized || 
+                      searchResult.status_request?.date_status_pre_authorized || 
+                      searchResult.status_request?.date_status_partially_refunded || 
+                      searchResult.status_request?.date_status_under_review || 
+                      searchResult.status_request?.date_status_on_hold_review || 
+                      searchResult.status_request?.date_status_waiting_review || 
+                      searchResult.status_request?.date_status_under_investigation || 
+                      searchResult.status_request?.date_status_disputed_review || 
+                      searchResult.status_request?.date_status_chargeback_review || 
+                      searchResult.status_request?.date_status_voided_review || 
+                      searchResult.date || 
+                      searchResult.created_date || 
+                      searchResult.paid_date || 
+                      'N/A'
+                    }</span>
                   </div>
                 </div>
               )}
@@ -1757,6 +1827,11 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
                       >
                         Pagar
                       </button>
+                    )}
+                    {invoice.status === 'Completo' && (
+                      <span className="px-3 py-1.5 bg-surface-container-highest text-on-surface-variant rounded-lg font-bold text-xs">
+                        Pago
+                      </span>
                     )}
                     <button className="text-on-surface-variant hover:text-primary transition-colors">
                       <Download size={18} />

@@ -255,6 +255,7 @@ const Navbar = ({ currentPage, setCurrentPage }: { currentPage: Page, setCurrent
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const navItems: { label: string, value: Page }[] = [
+    { label: 'Home', value: 'dashboard' },
     { label: 'Products', value: 'products' },
     { label: 'Domains', value: 'domains' },
     { label: 'Projects', value: 'projects' },
@@ -1363,6 +1364,19 @@ const ProfilePage = () => {
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Phone Number</label>
                 <input type="tel" defaultValue="+1 (555) 123-4567" className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all" />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Numero Contrato</label>
+                  <Lock size={12} className="text-on-surface-variant/50" />
+                </div>
+                <input 
+                  type="text" 
+                  maxLength={9} 
+                  placeholder="000000000" 
+                  disabled 
+                  className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary transition-all cursor-not-allowed opacity-70" 
+                />
               </div>
             </div>
 

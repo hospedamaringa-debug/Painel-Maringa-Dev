@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   UserCircle, 
@@ -1120,13 +1121,11 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
     pollPaymentStatus();
     const interval = setInterval(pollPaymentStatus, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [setInvoices]);
 
   const paymentMethods = [
     'Boleto Bancário',
-    'Pix',
-    'Cartão de Crédito',
-    'Transferência'
+    'Pix'
   ];
 
   const handlePayInvoice = (invoice: Invoice) => {
@@ -1241,26 +1240,41 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
                     Carregar Créditos
                   </button>
                 </div>
+
+                <div className="mt-4 p-4 bg-primary/5 rounded-xl border border-primary/10">
+                  <p className="text-xs text-on-surface-variant leading-relaxed">
+                    Quando um boleto é pago em um final de semana, tradicionalmente, sua compensação ocorre somente na terça-feira. No entanto, com o status “Aguardando”, é possível identificar o pagamento logo na segunda-feira. Dessa forma, a sua operação ganha um dia inteiro. Já para PIX, o pagamento é confirmado automaticamente.
+                  </p>
+                </div>
               </div>
-              
               <div className="space-y-4">
                 <div className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/5 group hover:border-primary/20 transition-colors">
                   <div className="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
-                    <Globe size={20} />
+                    <QrCode size={20} />
                   </div>
                   <div>
-                    <h4 className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">Hospedagem Pro Compartilhada</h4>
-                    <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">Próxima: 12 de Out, 2024</p>
+                    <h4 className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">Pix (Sistema)</h4>
+                    <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">Pagamento Instantâneo</p>
                   </div>
                 </div>
                 
                 <div className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/5 group hover:border-primary/20 transition-colors">
                   <div className="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
-                    <Server size={20} />
+                    <FileText size={20} />
                   </div>
                   <div>
-                    <h4 className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">VPS Gerenciado NVMe</h4>
-                    <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">Próxima: 05 de Abr, 2024</p>
+                    <h4 className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">Boleto (Sistema)</h4>
+                    <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">Compensação em 3 dias</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/5 group hover:border-primary/20 transition-colors cursor-pointer" onClick={() => setIsAddCardModalOpen(true)}>
+                  <div className="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
+                    <CreditCard size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">Cartão de Crédito</h4>
+                    <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">Pagamento Recorrente</p>
                   </div>
                 </div>
               </div>
@@ -1268,21 +1282,30 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
           </div>
         </div>
 
-        <div className="lg:col-span-4 bg-amber-50/50 rounded-xl p-8 backdrop-blur-sm relative border border-amber-200/30">
-          <div className="flex justify-between items-start mb-6">
-            <AlertCircle className="text-amber-600" size={32} />
-            <span className="text-amber-600 font-black font-headline text-2xl border-b-2 border-amber-600/30 pb-1">Pendente</span>
+        <div className="lg:col-span-4 bg-surface-container-lowest rounded-xl p-8 shadow-sm border border-outline-variant/10">
+          <h3 className="font-headline text-xl font-bold mb-6">Planos Assinados</h3>
+          <div className="space-y-4 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+            {[
+              { id: '1', name: 'Hospedagem Pro Compartilhada', next: '12 de Out, 2024', icon: <Globe size={20} /> },
+              { id: '2', name: 'VPS Gerenciado NVMe', next: '05 de Abr, 2024', icon: <Server size={20} /> },
+              { id: '3', name: 'Backup de Dados', next: '20 de Abr, 2024', icon: <Database size={20} /> },
+            ].map(plan => (
+              <div key={plan.id} className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/5">
+                <div className="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
+                  {plan.icon}
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-on-surface">{plan.name}</h4>
+                  <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">Próxima: {plan.next}</p>
+                </div>
+              </div>
+            ))}
           </div>
-          <h3 className="text-xl font-bold text-amber-900 mb-2">Fatura em Aberto</h3>
-          <p className="text-amber-800/70 text-sm mb-6 leading-relaxed">Fatura #9042 para renovação de domínio está atrasada há 3 dias.</p>
-          <div className="text-2xl font-bold text-amber-700 mb-6">{formatCurrency(10.00)}</div>
-          <button 
-            onClick={() => handlePayInvoice({ id: '#9042', date: '17 de Mar, 2024', amount: 10.00, status: 'Pendente' })}
-            className="w-full bg-amber-600 text-white py-3 rounded-lg font-bold hover:bg-amber-700 transition-all active:scale-95 shadow-lg shadow-amber-600/20"
-          >
-            Pagar Agora
-          </button>
         </div>
+
+
+
+
       </section>
 
       <AnimatePresence>
@@ -1470,7 +1493,7 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
                       <div className="text-center space-y-6">
                         <div className="inline-block p-4 bg-white rounded-2xl">
                           {paymentResult.qrcode_image_url ? (
-                            <img src={paymentResult.qrcode_image_url} alt="QR Code PIX" className="w-48 h-48 object-contain" />
+                            <Image src={paymentResult.qrcode_image_url} alt="QR Code PIX" width={192} height={192} className="w-48 h-48 object-contain" referrerPolicy="no-referrer" />
                           ) : (
                             <div className="w-48 h-48 bg-gray-200 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-400">
                               <QrCode size={64} className="text-gray-400" />
@@ -1544,154 +1567,8 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
       </AnimatePresence>
 
 
+
     <section className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-      <div className="space-y-6">
-        <h2 className="text-2xl font-extrabold font-headline tracking-tight">Métodos de Pagamento</h2>
-        <div className="bg-surface-container-low rounded-xl p-2 space-y-2">
-          {customPaymentMethods.map((method) => (
-            <div key={method.id} className="bg-surface-container-lowest p-5 rounded-lg flex items-center justify-between group cursor-pointer hover:bg-surface-bright transition-colors">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-8 bg-on-surface/5 rounded flex items-center justify-center text-on-surface-variant">
-                  {method.icon}
-                </div>
-                <div>
-                  <p className="font-bold text-sm">{method.title}</p>
-                  <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">{method.sub}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                {method.type === 'system' ? (
-                  <span className="text-primary text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Sistema</span>
-                ) : (
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteMethod(method.id);
-                    }}
-                    className="p-2 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-full transition-all opacity-0 group-hover:opacity-100"
-                    title="Excluir Método"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-        <button 
-          onClick={() => setIsAddCardModalOpen(true)}
-          className="text-primary font-bold text-xs flex items-center space-x-2 hover:underline decoration-2 underline-offset-4"
-        >
-          <Plus size={16} />
-          <span>Adicionar Novo Método</span>
-        </button>
-      </div>
-
-      <AnimatePresence>
-        {isAddCardModalOpen && (
-          <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsAddCardModalOpen(false)}
-              className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-surface-container-lowest rounded-3xl shadow-2xl border border-outline-variant/10 overflow-hidden"
-            >
-              <div className="bg-primary p-8 text-on-primary">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-headline text-2xl font-bold">Novo Cartão de Crédito</h3>
-                  <button onClick={() => setIsAddCardModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                    <X size={24} />
-                  </button>
-                </div>
-                <p className="text-on-primary/70 text-sm">Adicione um novo cartão para pagamentos automáticos</p>
-              </div>
-
-              <form onSubmit={handleAddCard} className="p-8 space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Nome no Cartão</label>
-                  <input 
-                    type="text" 
-                    required
-                    value={newCard.name}
-                    onChange={(e) => setNewCard({...newCard, name: e.target.value})}
-                    className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                    placeholder="Ex: JOÃO SILVA"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Número do Cartão</label>
-                  <div className="relative">
-                    <input 
-                      type="text" 
-                      required
-                      value={newCard.number}
-                      onChange={(e) => {
-                        let val = e.target.value.replace(/\D/g, '');
-                        val = val.replace(/(\d{4})/g, '$1 ').trim();
-                        if (val.length <= 19) setNewCard({...newCard, number: val});
-                      }}
-                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all pr-12"
-                      placeholder="0000 0000 0000 0000"
-                    />
-                    <CreditCard className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40" size={20} />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Data Expiração</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={newCard.expiry}
-                      onChange={(e) => {
-                        let val = e.target.value.replace(/\D/g, '');
-                        if (val.length <= 2) {
-                          setNewCard({...newCard, expiry: val});
-                        } else if (val.length <= 4) {
-                          setNewCard({...newCard, expiry: val.slice(0, 2) + '/' + val.slice(2)});
-                        }
-                      }}
-                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                      placeholder="MM/AA"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Código (CVV)</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={newCard.cvv}
-                      onChange={(e) => {
-                        let val = e.target.value.replace(/\D/g, '');
-                        if (val.length <= 4) setNewCard({...newCard, cvv: val});
-                      }}
-                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                      placeholder="123"
-                    />
-                  </div>
-                </div>
-
-                <button 
-                  type="submit"
-                  className="w-full bg-primary text-on-primary py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95"
-                >
-                  Salvar Cartão
-                </button>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
       <div className="space-y-6">
         <div className="flex justify-between items-end">
           <h2 className="text-2xl font-extrabold font-headline tracking-tight">Histórico de Faturamento</h2>
@@ -1873,89 +1750,142 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
         </div>
       </div>
 
-      <div className="space-y-6 mt-12">
-        <div className="flex items-center gap-3">
-          <ShieldCheck className="text-primary" size={24} />
-          <h2 className="text-2xl font-extrabold font-headline tracking-tight">Configurações de Webhook</h2>
-        </div>
-        
-        <div className="bg-surface-container-low p-8 rounded-2xl border border-outline-variant/10 space-y-6">
-          <div className="space-y-2">
-            <p className="text-sm text-on-surface-variant leading-relaxed">
-              Para que o sistema receba confirmações de pagamento automáticas do PagHiper, configure a URL abaixo no seu painel da PagHiper em <strong>Minha Conta &gt; Configurações &gt; Retorno Automático</strong>.
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">URL de Notificação (Webhook)</label>
-            <div className="flex gap-2">
-              <input 
-                type="text" 
-                readOnly 
-                value={`${window.location.origin}/api/payments/paghiper/webhook`} 
-                className="flex-1 bg-surface-container-lowest border border-outline-variant/10 rounded-xl px-4 py-4 font-mono text-xs focus:outline-none"
-              />
-              <button 
-                onClick={() => copyToClipboard(`${window.location.origin}/api/payments/paghiper/webhook`)}
-                className="px-6 bg-primary text-on-primary rounded-xl font-bold hover:opacity-90 transition-opacity flex items-center gap-2"
-              >
-                <Copy size={18} />
-                Copiar
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-outline-variant/10">
-            <div className="space-y-3">
-              <h4 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                <ShieldCheck size={14} /> IPs Autorizados (Whitelist)
-              </h4>
-              <ul className="space-y-2">
-                {['3.228.145.191', '15.188.152.107', '54.207.60.165'].map(ip => (
-                  <li key={ip} className="flex items-center gap-2 text-xs font-mono text-on-surface-variant bg-surface-container-lowest px-3 py-1.5 rounded-lg w-fit">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                    {ip}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="space-y-3">
-              <h4 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                <Users size={14} /> User-Agents Aceitos
-              </h4>
-              <div className="space-y-2">
-                <p className="text-[10px] font-mono text-on-surface-variant bg-surface-container-lowest p-2 rounded-lg leading-tight">
-                  PAGHIPER-Webhook/1.3
-                </p>
-                <p className="text-[10px] font-mono text-on-surface-variant bg-surface-container-lowest p-2 rounded-lg leading-tight">
-                  Mozilla/5.0 (Windows NT 10.0; Win64; x64)...
-                </p>
+      <AnimatePresence>
+        {isAddCardModalOpen && (
+          <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAddCardModalOpen(false)}
+              className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-surface-container-lowest rounded-3xl shadow-2xl border border-outline-variant/10 overflow-hidden"
+            >
+              <div className="bg-primary p-8 text-on-primary">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-headline text-2xl font-bold">Novo Cartão de Crédito</h3>
+                  <button onClick={() => setIsAddCardModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                    <X size={24} />
+                  </button>
+                </div>
+                <p className="text-on-primary/70 text-sm">Adicione um novo cartão para pagamentos automáticos</p>
               </div>
-            </div>
+
+              <form onSubmit={handleAddCard} className="p-8 space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Nome no Cartão</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={newCard.name}
+                    onChange={(e) => setNewCard({...newCard, name: e.target.value})}
+                    className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                    placeholder="Ex: JOÃO SILVA"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Número do Cartão</label>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      required
+                      value={newCard.number}
+                      onChange={(e) => {
+                        let val = e.target.value.replace(/\D/g, '');
+                        val = val.replace(/(\d{4})/g, '$1 ').trim();
+                        if (val.length <= 19) setNewCard({...newCard, number: val});
+                      }}
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all pr-12"
+                      placeholder="0000 0000 0000 0000"
+                    />
+                    <CreditCard className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40" size={20} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Data Expiração</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={newCard.expiry}
+                      onChange={(e) => {
+                        let val = e.target.value.replace(/\D/g, '');
+                        if (val.length <= 2) {
+                          setNewCard({...newCard, expiry: val});
+                        } else if (val.length <= 4) {
+                          setNewCard({...newCard, expiry: val.slice(0, 2) + '/' + val.slice(2)});
+                        }
+                      }}
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                      placeholder="MM/AA"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Código (CVV)</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={newCard.cvv}
+                      onChange={(e) => {
+                        let val = e.target.value.replace(/\D/g, '');
+                        if (val.length <= 4) setNewCard({...newCard, cvv: val});
+                      }}
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                      placeholder="123"
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="submit"
+                  className="w-full bg-primary text-on-primary py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95"
+                >
+                  Salvar Cartão
+                </button>
+              </form>
+            </motion.div>
           </div>
-          
-          <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
-            <p className="text-[10px] text-primary font-medium leading-relaxed">
-              <strong>Nota de Segurança:</strong> O sistema está configurado para validar a origem das notificações através destes IPs e User-Agents, garantindo que apenas a PagHiper possa atualizar o status dos seus pagamentos.
-            </p>
+        )}
+      </AnimatePresence>
+
+
+
+      <div className="space-y-6">
+        <section className="bg-primary text-on-primary rounded-2xl p-8 md:p-12 relative overflow-hidden flex flex-col md:flex-row justify-between items-center gap-8">
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full -ml-48 -mt-48 blur-3xl"></div>
+            <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full -mr-48 -mb-48 blur-3xl"></div>
           </div>
-        </div>
+          <div className="relative z-10 max-w-xl">
+            <h2 className="text-3xl font-black font-headline mb-4 leading-tight">Mude para o faturamento anual e não se preocupe mais com suspensões ou boletos de avisos.</h2>
+            <p className="text-on-primary/80 font-medium">Efetue sua carga e garanta nossas taxas de infraestrutura atuais pelos próximos 12 meses</p>
+          </div>
+          <div className="relative z-10">
+            <button 
+          onClick={() => setIsCreditModalOpen(true)}
+          className="bg-surface-container-lowest text-primary px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:scale-105 transition-transform active:scale-95"
+        >
+          Pagar Anual
+        </button>
+          </div>
+        </section>
+
+
       </div>
+
+
+
+
     </section>
 
-    <section className="bg-primary text-on-primary rounded-2xl p-8 md:p-12 relative overflow-hidden flex flex-col md:flex-row justify-between items-center gap-8">
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full -ml-48 -mt-48 blur-3xl"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full -mr-48 -mb-48 blur-3xl"></div>
-      </div>
-      <div className="relative z-10 max-w-xl">
-        <h2 className="text-3xl font-black font-headline mb-4 leading-tight">Mude para o faturamento bienal e economize até 25%</h2>
-        <p className="text-on-primary/80 font-medium">Estenda seu compromisso e garanta nossas taxas de infraestrutura atuais pelos próximos 24 meses.</p>
-      </div>
-      <div className="relative z-10">
-        <button className="bg-surface-container-lowest text-primary px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:scale-105 transition-transform active:scale-95">Calcular Economia</button>
-      </div>
-    </section>
+
   </div>
   );
 };

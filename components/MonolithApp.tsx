@@ -1223,7 +1223,6 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
     <div className="space-y-12">
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-8 space-y-6">
-          <span className="text-[10px] text-primary tracking-widest font-bold uppercase block mb-2">Assinatura Atual</span>
           <div className="bg-surface-container-lowest rounded-xl p-8 shadow-sm relative overflow-hidden border border-outline-variant/5">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16"></div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
@@ -1256,6 +1255,7 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
                     <h4 className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">Pix (Sistema)</h4>
                     <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">Pagamento Instantâneo</p>
                   </div>
+                  <div className="ml-auto text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">(Padrão)</div>
                 </div>
                 
                 <div className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/5 group hover:border-primary/20 transition-colors">
@@ -1266,6 +1266,7 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
                     <h4 className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">Boleto (Sistema)</h4>
                     <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">Compensação em 3 dias</p>
                   </div>
+                  <div className="ml-auto text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">(Padrão)</div>
                 </div>
                 
                 <div className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/5 group hover:border-primary/20 transition-colors cursor-pointer" onClick={() => setIsAddCardModalOpen(true)}>
@@ -1276,6 +1277,7 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
                     <h4 className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">Cartão de Crédito</h4>
                     <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">Pagamento Recorrente</p>
                   </div>
+                  <div className="ml-auto text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">(Cliente)</div>
                 </div>
               </div>
             </div>
@@ -1290,8 +1292,8 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
               { id: '2', name: 'VPS Gerenciado NVMe', next: '05 de Abr, 2024', icon: <Server size={20} /> },
               { id: '3', name: 'Backup de Dados', next: '20 de Abr, 2024', icon: <Database size={20} /> },
             ].map(plan => (
-              <div key={plan.id} className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/5">
-                <div className="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
+              <div key={plan.id} className="flex items-center gap-4 p-4 rounded-xl border border-outline-variant/5">
+                <div className="w-10 h-10 text-primary rounded-lg flex items-center justify-center shrink-0">
                   {plan.icon}
                 </div>
                 <div>
@@ -1706,7 +1708,44 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
         </div>
 
         <div className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm">
-          <table className="w-full text-left border-collapse">
+          {/* Mobile View: Cards */}
+          <div className="md:hidden space-y-4 p-4">
+            {invoices.map(invoice => (
+              <div key={invoice.id} className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/5 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-sm text-on-surface">{invoice.id}</span>
+                  <span className={`text-[10px] font-black tracking-widest uppercase px-2 py-1 rounded ${invoice.status === 'Completo' ? 'bg-[#08ac76]/10 text-[#08ac76]' : 'bg-primary/10 text-primary'}`}>
+                    {invoice.status}
+                  </span>
+                </div>
+                <div className="text-sm text-on-surface-variant">{invoice.date}</div>
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-sm">{formatCurrency(invoice.amount)}</span>
+                  <div className="flex items-center gap-2">
+                    {invoice.status === 'Pendente' && (
+                      <button 
+                        onClick={() => handlePayInvoice(invoice)}
+                        className="px-3 py-1.5 bg-error text-on-error rounded-lg font-bold text-xs hover:bg-error/90 transition-colors"
+                      >
+                        Pagar
+                      </button>
+                    )}
+                    {invoice.status === 'Completo' && (
+                      <span className="px-3 py-1.5 bg-[#08ac76]/10 text-[#08ac76] rounded-lg font-bold text-xs">
+                        Pago
+                      </span>
+                    )}
+                    <button className="text-on-surface-variant hover:text-primary transition-colors">
+                      <Download size={18} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop View: Table */}
+          <table className="hidden md:table w-full text-left border-collapse">
             <thead className="bg-surface-container-low">
               <tr>
                 {['Fatura', 'Data', 'Valor', 'Status', ''].map(h => (
@@ -1864,7 +1903,7 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
             <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full -mr-48 -mb-48 blur-3xl"></div>
           </div>
           <div className="relative z-10 max-w-xl">
-            <h2 className="text-3xl font-black font-headline mb-4 leading-tight">Mude para o faturamento anual e não se preocupe mais com suspensões ou boletos de avisos.</h2>
+            <h2 className="text-3xl font-black font-headline mb-4 leading-tight">Mude para o faturamento anual e não se preocupe mais com suspensões ou boletos.</h2>
             <p className="text-on-primary/80 font-medium">Efetue sua carga e garanta nossas taxas de infraestrutura atuais pelos próximos 12 meses</p>
           </div>
           <div className="relative z-10">

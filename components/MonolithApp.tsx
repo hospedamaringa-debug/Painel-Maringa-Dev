@@ -19,6 +19,7 @@ import {
   HelpCircle, 
   Settings, 
   CheckCircle,
+  XCircle,
   Menu,
   X,
   ChevronRight,
@@ -93,7 +94,7 @@ const parseCurrency = (value: string) => {
 
 // --- Types ---
 
-type Page = 'dashboard' | 'billing' | 'support' | 'services' | 'domains' | 'status' | 'activity' | 'projects' | 'service-manage' | 'ticket-detail' | 'terms' | 'privacy' | 'products' | 'profile';
+type Page = 'dashboard' | 'billing' | 'support' | 'services' | 'domains' | 'status' | 'activity' | 'projects' | 'service-manage' | 'ticket-detail' | 'create-ticket' | 'terms' | 'privacy' | 'products' | 'profile';
 
 interface Invoice {
   id: string;
@@ -614,9 +615,12 @@ const PrivacyPolicyPage = ({ onBack }: { onBack: () => void }) => (
 );
 
 const ProductsPage = () => {
+  const [isMigrating, setIsMigrating] = useState<string | null>(null);
+
   const products = [
     {
       id: 'hosting',
+      planNumber: 101,
       title: 'Hospedagem Compartilhada',
       description: 'Ideal para sites pequenos e blogs. Performance otimizada com NVMe.',
       price: 'R$ 19,90',
@@ -626,6 +630,7 @@ const ProductsPage = () => {
     },
     {
       id: 'vps',
+      planNumber: 102,
       title: 'Servidores VPS',
       description: 'Controle total e recursos dedicados para aplicações escaláveis.',
       price: 'R$ 89,00',
@@ -635,6 +640,7 @@ const ProductsPage = () => {
     },
     {
       id: 'dedicated',
+      planNumber: 103,
       title: 'Servidores Dedicados',
       description: 'Poder bruto para grandes projetos e infraestruturas críticas.',
       price: 'R$ 450,00',
@@ -644,6 +650,7 @@ const ProductsPage = () => {
     },
     {
       id: 'ssl',
+      planNumber: 104,
       title: 'Certificados SSL',
       description: 'Segurança e confiança para seus visitantes com criptografia forte.',
       price: 'R$ 49,00',
@@ -653,6 +660,7 @@ const ProductsPage = () => {
     },
     {
       id: 'backup',
+      planNumber: 105,
       title: 'Backup de Dados',
       description: 'Proteção contra perda de dados com armazenamento externo seguro.',
       price: 'R$ 29,90',
@@ -662,6 +670,7 @@ const ProductsPage = () => {
     },
     {
       id: 'licenses',
+      planNumber: 106,
       title: 'Licenças e Softwares',
       description: 'Licenciamento oficial para cPanel, Plesk, CloudLinux e mais.',
       price: 'Sob consulta',
@@ -670,6 +679,26 @@ const ProductsPage = () => {
       features: ['Ativação Imediata', 'Suporte Técnico', 'Preços Competitivos', 'Gestão Centralizada']
     }
   ];
+
+  const handlePlanMigration = async (product: any) => {
+    setIsMigrating(product.id);
+    try {
+      const response = await fetch('/api/billing/update-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planNumber: product.planNumber }),
+      });
+      
+      if (!response.ok) throw new Error('Falha na migração');
+      
+      alert(`Migração para o plano ${product.title} realizada com sucesso!`);
+    } catch (error) {
+      console.error('Erro na migração:', error);
+      alert('Erro ao migrar plano. Tente novamente.');
+    } finally {
+      setIsMigrating(null);
+    }
+  };
 
   return (
     <div className="space-y-12">
@@ -706,8 +735,12 @@ const ProductsPage = () => {
               ))}
             </ul>
 
-            <button className="w-full py-4 bg-surface-container-highest text-on-surface font-bold rounded-xl hover:bg-primary hover:text-on-primary transition-all active:scale-95">
-              Assinar Agora
+            <button 
+              onClick={() => handlePlanMigration(product)}
+              disabled={isMigrating === product.id}
+              className="w-full py-4 bg-surface-container-highest text-on-surface font-bold rounded-xl hover:bg-primary hover:text-on-primary transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isMigrating === product.id ? 'Migrando...' : 'Assinar Agora'}
             </button>
           </div>
         ))}
@@ -812,7 +845,7 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
             {MOCK_SERVICES.map(service => (
               <div key={service.id} className="flex items-center justify-between p-4 bg-surface-container-low rounded-lg">
                 <div className="flex items-center gap-3">
-                  {service.type === 'hosting' ? <Server className="text-[#035e75]" size={20} /> : <Cpu className="text-[#035e75]" size={20} />}
+                  {service.type === 'hosting' ? <Server className="text-[#035e75]" size={20} /> : service.type === 'ssl' ? <ShieldCheck className="text-[#035e75]" size={20} /> : <Cpu className="text-[#035e75]" size={20} />}
                   <div>
                     <p className="font-bold text-sm">{service.name}</p>
                     <p className="text-xs text-on-surface-variant">{service.host}</p>
@@ -983,10 +1016,27 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
 );
 };
 
-const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: UserProfile, invoices: Invoice[], setInvoices: (invoices: Invoice[]) => void }) => {
+const BillingPage = ({ userProfile, invoices, setInvoices, onOpenTicket }: { userProfile: UserProfile, invoices: Invoice[], setInvoices: (invoices: Invoice[]) => void, onOpenTicket: () => void }) => {
   const [isCreditModalOpen, setIsCreditModalOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState({ name: 'Enterprise Cloud Node', icon: <Server size={20} />, next: '12 de Out, 2024' });
   const [creditAmount, setCreditAmount] = useState('10,00');
   const [paymentMethod, setPaymentMethod] = useState('Pix');
+  
+  const availablePlans = [
+    { id: '101', name: 'Hospedagem Compartilhada', icon: <Globe size={20} /> },
+    { id: '102', name: 'Servidores VPS', icon: <Cpu size={20} /> },
+    { id: '103', name: 'Servidores Dedicados', icon: <Server size={20} /> },
+    { id: '104', name: 'Certificados SSL', icon: <ShieldCheck size={20} /> },
+    { id: '105', name: 'Backup de Dados', icon: <Database size={20} /> },
+    { id: '106', name: 'Licenças e Softwares', icon: <Terminal size={20} /> },
+  ];
+
+  const handleUpgrade = (plan: any) => {
+    setSelectedPlan({ ...plan, next: '12 de Out, 2024' });
+    setIsUpgradeModalOpen(false);
+    onOpenTicket();
+  };
   
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -1231,7 +1281,12 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
                 <p className="text-xs text-on-surface-variant font-medium">Faturado anualmente • Próxima renovação: 12 de Out, 2024</p>
                 
                 <div className="mt-8 flex flex-wrap gap-3">
-                  <button className="bg-gradient-to-br from-primary to-primary-container text-on-primary px-5 py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-wider shadow-lg shadow-primary/20 hover:opacity-90 transition-all active:scale-95">Upgrade de Plano</button>
+                  <button 
+                    onClick={onOpenTicket}
+                    className="bg-gradient-to-br from-primary to-primary-container text-on-primary px-5 py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-wider shadow-lg shadow-primary/20 hover:opacity-90 transition-all active:scale-95"
+                  >
+                    Upgrade de Plano
+                  </button>
                   <button 
                     onClick={() => setIsCreditModalOpen(true)}
                     className="bg-surface-container-highest text-on-surface px-5 py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-wider hover:bg-surface-variant transition-all active:scale-95"
@@ -1287,21 +1342,15 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
         <div className="lg:col-span-4 bg-surface-container-lowest rounded-xl p-8 shadow-sm border border-outline-variant/10">
           <h3 className="font-headline text-xl font-bold mb-6">Planos Assinados</h3>
           <div className="space-y-4 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
-            {[
-              { id: '1', name: 'Hospedagem Pro Compartilhada', next: '12 de Out, 2024', icon: <Globe size={20} /> },
-              { id: '2', name: 'VPS Gerenciado NVMe', next: '05 de Abr, 2024', icon: <Server size={20} /> },
-              { id: '3', name: 'Backup de Dados', next: '20 de Abr, 2024', icon: <Database size={20} /> },
-            ].map(plan => (
-              <div key={plan.id} className="flex items-center gap-4 p-4 rounded-xl border border-outline-variant/5">
-                <div className="w-10 h-10 text-primary rounded-lg flex items-center justify-center shrink-0">
-                  {plan.icon}
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-on-surface">{plan.name}</h4>
-                  <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">Próxima: {plan.next}</p>
-                </div>
+            <div className="flex items-center gap-4 p-4 rounded-xl border border-outline-variant/5">
+              <div className="w-10 h-10 text-primary rounded-lg flex items-center justify-center shrink-0">
+                {selectedPlan.icon}
               </div>
-            ))}
+              <div>
+                <h4 className="font-bold text-sm text-on-surface">{selectedPlan.name}</h4>
+                <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">Próxima: {selectedPlan.next}</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1309,6 +1358,40 @@ const BillingPage = ({ userProfile, invoices, setInvoices }: { userProfile: User
 
 
       </section>
+
+      <AnimatePresence>
+        {isUpgradeModalOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-surface-container-lowest rounded-2xl p-8 w-full max-w-md border border-outline-variant/10 shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="font-headline text-xl font-bold">Selecione um novo plano</h3>
+                <button onClick={() => setIsUpgradeModalOpen(false)} className="text-on-surface-variant hover:text-primary">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="space-y-3">
+                {availablePlans.map(plan => (
+                  <button 
+                    key={plan.id}
+                    onClick={() => handleUpgrade(plan)}
+                    className="w-full flex items-center gap-4 p-4 rounded-xl border border-outline-variant/10 hover:border-primary/30 hover:bg-primary/5 transition-all text-left"
+                  >
+                    <div className="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
+                      {plan.icon}
+                    </div>
+                    <span className="font-bold text-sm text-on-surface">{plan.name}</span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {isCreditModalOpen && (
@@ -2170,6 +2253,132 @@ const TicketDetailPage = ({ ticketId, onBack }: { ticketId: string, onBack: () =
   );
 };
 
+const CreateTicketPage = ({ onBack }: { onBack: () => void }) => {
+  const [subject, setSubject] = useState('');
+  const [department, setDepartment] = useState('Suporte Técnico');
+  const [product, setProduct] = useState('Enterprise Cloud Node');
+  const [description, setDescription] = useState('');
+  const [priority, setPriority] = useState('Média');
+  const [files, setFiles] = useState<File[]>([]);
+  const [securityCode, setSecurityCode] = useState('');
+  const [generatedCode] = useState(() => Math.floor(1000 + Math.random() * 9000).toString());
+
+  const handleSubmit = () => {
+    if (securityCode !== generatedCode) {
+      alert('Código de segurança incorreto!');
+      return;
+    }
+    // Handle ticket submission
+    console.log('Ticket submitted:', { subject, department, product, description, priority, files });
+    onBack();
+  };
+
+  return (
+    <div className="space-y-8 max-w-3xl">
+      <button 
+        onClick={onBack}
+        className="flex items-center gap-2 text-on-surface-variant hover:text-primary font-bold transition-colors group"
+      >
+        <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+        <span>Voltar</span>
+      </button>
+
+      <div className="bg-surface-container-lowest rounded-2xl p-8 shadow-sm border border-outline-variant/10">
+        <h1 className="text-3xl font-black font-headline text-on-surface mb-8">Criar Novo Ticket</h1>
+        
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Departamento</label>
+              <select 
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              >
+                <option>Suporte Técnico</option>
+                <option>Financeiro</option>
+                <option>Comercial</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Produto Relacionado</label>
+              <select 
+                value={product}
+                onChange={(e) => setProduct(e.target.value)}
+                className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              >
+                <option>Enterprise Cloud Node</option>
+                <option>Hospedagem Compartilhada</option>
+                <option>Servidores VPS</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Assunto</label>
+            <input 
+              type="text" 
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              placeholder="Resumo do problema"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Prioridade</label>
+            <select 
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+              className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            >
+              <option>Baixa</option>
+              <option>Média</option>
+              <option>Alta</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Descrição</label>
+            <textarea 
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl p-6 min-h-[200px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              placeholder="Descreva o problema detalhadamente..."
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Anexos</label>
+            <input 
+              type="file" 
+              multiple
+              onChange={(e) => setFiles(Array.from(e.target.files || []))}
+              className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Código de Segurança: {generatedCode}</label>
+            <input 
+              type="text" 
+              value={securityCode}
+              onChange={(e) => setSecurityCode(e.target.value)}
+              className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              placeholder="Digite o código acima"
+            />
+          </div>
+
+          <div className="flex justify-end gap-4">
+            <button onClick={onBack} className="px-6 py-3 rounded-xl font-bold text-sm hover:bg-surface-container-low transition-colors">Cancelar</button>
+            <button onClick={handleSubmit} className="bg-primary text-on-primary px-10 py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-lg hover:scale-105 transition-transform active:scale-95">Criar Ticket</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const StatusPage = () => (
   <div className="space-y-12">
     <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
@@ -2255,6 +2464,109 @@ const StatusPage = () => (
   </div>
 );
 
+const DomainsPage = () => {
+  const [domain, setDomain] = useState('');
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSearch = async () => {
+    if (!domain) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const response = await fetch(`https://rdap.registro.br/domain/${domain}`);
+      if (response.status === 404) {
+        setResult({ available: true });
+      } else if (response.ok) {
+        const data = await response.json();
+        setResult({ available: false, data });
+      } else {
+        setError('Erro ao consultar domínio.');
+      }
+    } catch (err) {
+      setError('Erro ao conectar com a API.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('pt-BR');
+
+  return (
+    <div className="p-8 max-w-4xl mx-auto">
+      <h2 className="text-3xl font-bold mb-6 text-on-surface">Consulta de Domínios</h2>
+      <div className="flex flex-col md:flex-row gap-4 mb-8 bg-surface-container-low p-4 rounded-xl shadow-sm">
+        <input
+          type="text"
+          value={domain}
+          onChange={(e) => setDomain(e.target.value)}
+          placeholder="exemplo.com.br"
+          className="w-full p-3 rounded-lg border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary outline-none"
+        />
+        <button
+          onClick={handleSearch}
+          className="w-full md:w-auto bg-primary text-on-primary px-8 py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-primary-container transition-colors"
+        >
+          <Search size={20} />
+          Consultar
+        </button>
+      </div>
+
+      {loading && <p className="text-center text-on-surface-variant">Consultando disponibilidade...</p>}
+      {error && <p className="text-error text-center font-bold">{error}</p>}
+
+      {result && (
+        <div className="bg-surface-container-lowest p-8 rounded-2xl shadow-lg border border-outline-variant">
+          {result.available ? (
+            <div className="text-center">
+              <CheckCircle size={64} className="text-success mx-auto mb-4" />
+              <p className="text-2xl font-bold text-success mb-6">Domínio {domain} está disponível!</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="bg-surface-container-low p-6 rounded-xl border border-outline-variant">
+                  <h4 className="font-bold text-lg mb-2">Plano Anual</h4>
+                  <p className="text-4xl font-extrabold mb-4">R$ 60,00</p>
+                  <button className="w-full bg-primary text-on-primary py-3 rounded-lg font-bold">Assinar Anual</button>
+                </div>
+                <div className="bg-surface-container-low p-6 rounded-xl border border-outline-variant">
+                  <h4 className="font-bold text-lg mb-2">Plano Bianual</h4>
+                  <p className="text-4xl font-extrabold mb-4">R$ 120,00</p>
+                  <button className="w-full bg-primary text-on-primary py-3 rounded-lg font-bold">Assinar Bianual</button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p className="text-2xl font-bold text-error mb-6 flex items-center gap-2">
+                <XCircle size={32} /> Domínio {domain} já está registrado.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                <div className="bg-surface-container-low p-4 rounded-lg">
+                  <p className="font-bold text-on-surface-variant">Data de Criação</p>
+                  <p className="text-base">{formatDate(result.data.events.find((e: any) => e.eventAction === 'registration').eventDate)}</p>
+                </div>
+                <div className="bg-surface-container-low p-4 rounded-lg">
+                  <p className="font-bold text-on-surface-variant">Data de Expiração</p>
+                  <p className="text-base">{formatDate(result.data.events.find((e: any) => e.eventAction === 'expiration').eventDate)}</p>
+                </div>
+              </div>
+              <div className="mt-6 bg-surface-container-low p-4 rounded-lg">
+                <p className="font-bold text-on-surface-variant mb-2">DNS</p>
+                <ul className="list-disc list-inside">
+                  {result.data.nameservers?.map((ns: any, i: number) => <li key={i}>{ns.ldhName}</li>)}
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ActivityLogPage = ({ initialCategory = 'Toda Atividade' }: { initialCategory?: string }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
@@ -2289,15 +2601,15 @@ const ActivityLogPage = ({ initialCategory = 'Toda Atividade' }: { initialCatego
           <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Log de Atividades</h1>
           <p className="text-on-surface-variant text-lg leading-relaxed">Um histórico detalhado de todas as ações realizadas em sua conta e infraestrutura Hospeda Maringá.</p>
         </div>
-        <div className="flex items-center gap-4 bg-surface-container-low p-2 rounded-xl border border-outline-variant/10">
-          <div className="relative">
+        <div className="flex flex-wrap items-center gap-4 bg-surface-container-low p-2 rounded-xl border border-outline-variant/10 w-full md:w-auto">
+          <div className="relative w-full md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" size={18} />
             <input 
               type="text" 
               placeholder="Pesquisar logs..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-surface-container-lowest border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary w-64"
+              className="bg-surface-container-lowest border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary w-full"
             />
           </div>
           <button className="bg-primary text-on-primary p-2 rounded-lg active:scale-95 transition-all">
@@ -3531,7 +3843,7 @@ export default function MonolithApp() {
               <DashboardPage 
                 onManageService={handleManageService} 
                 onViewActivity={() => handlePageChange('activity')} 
-                onOpenTicket={() => setCurrentPage('support')}
+                onOpenTicket={() => setCurrentPage('create-ticket')}
                 onViewStatus={() => setCurrentPage('status')}
                 onTicketClick={handleTicketClick}
                 onViewProjects={() => setCurrentPage('projects')}
@@ -3539,8 +3851,9 @@ export default function MonolithApp() {
               />
             )}
             {currentPage === 'products' && <ProductsPage />}
-            {currentPage === 'billing' && <BillingPage userProfile={userProfile} invoices={invoices} setInvoices={setInvoices} />}
+            {currentPage === 'billing' && <BillingPage userProfile={userProfile} invoices={invoices} setInvoices={setInvoices} onOpenTicket={() => setCurrentPage('create-ticket')} />}
             {currentPage === 'support' && <SupportPage onTicketClick={handleTicketClick} />}
+            {currentPage === 'create-ticket' && <CreateTicketPage onBack={() => setCurrentPage('support')} />}
             {currentPage === 'ticket-detail' && selectedTicketId && (
               <TicketDetailPage ticketId={selectedTicketId} onBack={() => setCurrentPage('support')} />
             )}
@@ -3565,13 +3878,13 @@ export default function MonolithApp() {
                 onBack={() => setCurrentPage('dashboard')} 
               />
             )}
-            {(currentPage === 'services' || currentPage === 'domains') && (
+            {currentPage === 'services' && (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <div className="bg-surface-container-low p-12 rounded-full mb-6">
                   <Settings size={64} className="text-primary animate-spin-slow" />
                 </div>
                 <h2 className="text-3xl font-bold mb-2">Módulo em Manutenção</h2>
-                <p className="text-on-surface-variant max-w-md">Estamos atualizando nosso mecanismo de gerenciamento de {currentPage === 'services' ? 'serviços' : 'domínios'}. Por favor, volte em alguns minutos.</p>
+                <p className="text-on-surface-variant max-w-md">Estamos atualizando nosso mecanismo de gerenciamento de serviços. Por favor, volte em alguns minutos.</p>
                 <button 
                   onClick={() => setCurrentPage('dashboard')}
                   className="mt-8 text-primary font-bold uppercase tracking-widest text-xs border-b-2 border-primary/20 hover:border-primary transition-all pb-1"
@@ -3580,6 +3893,7 @@ export default function MonolithApp() {
                 </button>
               </div>
             )}
+            {currentPage === 'domains' && <DomainsPage />}
           </motion.div>
         </AnimatePresence>
       </main>

@@ -18,6 +18,9 @@ import {
   ArrowRight, 
   HelpCircle, 
   Settings, 
+  Zap,
+  Briefcase,
+  Rocket,
   CheckCircle,
   XCircle,
   Menu,
@@ -49,7 +52,6 @@ import {
   Copy,
   Eye,
   EyeOff,
-  Zap,
   Bell,
   BellDot,
   MessageCircle,
@@ -614,59 +616,163 @@ const PrivacyPolicyPage = ({ onBack }: { onBack: () => void }) => (
   </div>
 );
 
-const ProductsPage = () => {
+const ProductsPage = ({ setIsOpen }: { setIsOpen: (open: boolean) => void }) => {
   const [isMigrating, setIsMigrating] = useState<string | null>(null);
 
   const products = [
     {
-      id: 'hosting',
-      planNumber: 101,
-      title: 'Hospedagem Compartilhada',
-      description: 'Ideal para sites pequenos e blogs. Performance otimizada com NVMe.',
-      price: 'R$ 19,90',
+      id: 'hosting-inicial',
+      planNumber: 201,
+      title: 'Inicial',
+      description: 'CPU E5-2470 v2 | 10GB Espaço | 01GB RAM | CPU Xeon E3-1230',
+      price: 'R$ 31,90',
       period: '/mês',
-      icon: <Globe size={24} />,
-      features: ['Domínio Grátis', 'SSL Ilimitado', 'Backups Diários', 'Suporte 24/7']
+      icon: <Zap size={24} />,
+      features: ['10GB 15 caixas e-mails', 'Construtor de Site Grátis', 'cPanel + CloudFlare', 'Suporte Ticket'],
+      category: 'Hospedagem'
+    },
+    {
+      id: 'hosting-corporativo',
+      planNumber: 202,
+      title: 'Corporativo',
+      description: 'CPU E5-2470 v2 | 50GB Espaço | 02GB RAM | CPU Xeon E3-1230',
+      price: 'R$ 81,90',
+      period: '/mês',
+      icon: <Briefcase size={24} />,
+      features: ['15GB 100 caixas e-mails', 'Construtor de Sites Grátis', 'cPanel + CloudFlare', 'Suporte Ticket Chat'],
+      category: 'Hospedagem'
+    },
+    {
+      id: 'hosting-avancado',
+      planNumber: 203,
+      title: 'Avançado',
+      description: 'CPU E5-2470 v2 | 100GB Espaço | 04GB RAM | CPU Xeon E3-1230',
+      price: 'R$ 159,90',
+      period: '/mês',
+      icon: <Rocket size={24} />,
+      features: ['30GB Caixas ilimitadas', 'Construtor de Sites Grátis', 'cPanel + CloudFlare', 'Suporte Ticket WhatsApp'],
+      category: 'Hospedagem'
     },
     {
       id: 'vps',
       planNumber: 102,
       title: 'Servidores VPS',
       description: 'Controle total e recursos dedicados para aplicações escaláveis.',
-      price: 'R$ 89,00',
+      price: 'R$ 00,00',
       period: '/mês',
       icon: <Cpu size={24} />,
-      features: ['Acesso Root', 'IP Dedicado', 'Escalabilidade Real', 'SSD NVMe']
+      features: ['Acesso Root', 'IP Dedicado', 'Escalabilidade Real', 'SSD NVMe'],
+      category: 'Servidores'
     },
     {
       id: 'dedicated',
       planNumber: 103,
       title: 'Servidores Dedicados',
       description: 'Poder bruto para grandes projetos e infraestruturas críticas.',
-      price: 'R$ 450,00',
+      price: 'R$ 00,00',
       period: '/mês',
       icon: <Server size={24} />,
-      features: ['Hardware Exclusivo', 'Tráfego Ilimitado', 'Rede 10Gbps', 'Monitoramento']
+      features: ['Hardware Exclusivo', 'Tráfego Ilimitado', 'Rede 10Gbps', 'Monitoramento'],
+      category: 'Servidores'
     },
     {
-      id: 'ssl',
-      planNumber: 104,
-      title: 'Certificados SSL',
-      description: 'Segurança e confiança para seus visitantes com criptografia forte.',
-      price: 'R$ 49,00',
-      period: '/ano',
+      id: 'ssl-positive',
+      planNumber: 301,
+      title: 'Positive SSL',
+      description: 'O Plano ideal para o seu negócio começar a ter presença digital.',
+      price: 'R$ 129,90',
+      period: '/anual',
       icon: <ShieldCheck size={24} />,
-      features: ['Validação de Domínio', 'Selo de Segurança', 'Compatível com Browsers', 'Garantia']
+      features: ['Criptografia 256 Bits', 'Assinatura 2048 Bits', 'Validação 30Min', 'Reemissão Grátis', 'Dominio válido 1'],
+      category: 'Segurança'
     },
     {
-      id: 'backup',
-      planNumber: 105,
-      title: 'Backup de Dados',
-      description: 'Proteção contra perda de dados com armazenamento externo seguro.',
-      price: 'R$ 29,90',
+      id: 'ssl-wildcard',
+      planNumber: 302,
+      title: 'Positive WildCard',
+      description: 'O Plano ideal para a proteção completa do seu negócio na internet.',
+      price: 'R$ 460,00',
+      period: '/anual',
+      icon: <ShieldCheck size={24} />,
+      features: ['Criptografia 256 Bits', 'Assinatura 2048 Bits', 'Validação 30Min', 'Reemissão Grátis', 'Dominio válido 1'],
+      category: 'Segurança'
+    },
+    {
+      id: 'ssl-ev',
+      planNumber: 303,
+      title: 'EV MultiDomain',
+      description: 'A melhor escolha para o seu negócio e garantia de segurança online.',
+      price: 'R$ 1700,00',
+      period: '/anual',
+      icon: <ShieldCheck size={24} />,
+      features: ['Criptografia 256 Bits', 'Assinatura 2048 Bits', 'Validação 30Min', 'Reemissão Grátis', 'Dominio válido 1'],
+      category: 'Segurança'
+    },
+    {
+      id: 'cloud-backup-200gb',
+      planNumber: 401,
+      title: 'Cloud Backup 200GB',
+      description: 'Armazenamento em nuvem com privacidade, segurança e controle total sobre seus dados.',
+      price: 'R$ 79,90',
       period: '/mês',
       icon: <Database size={24} />,
-      features: ['Snapshots Automáticos', 'Retenção de 30 dias', 'Restauração Rápida', 'Criptografia']
+      features: ['Fácil acesso em qualquer lugar', 'Controle de acesso via web ou app', 'Acesso a plataforma na nuvem', 'Planos com discos 200GB'],
+      category: 'Backups'
+    },
+    {
+      id: 'cloud-backup-500gb',
+      planNumber: 402,
+      title: 'Cloud Backup 500GB',
+      description: 'Armazenamento em nuvem com privacidade, segurança e controle total sobre seus dados.',
+      price: 'R$ 159,90',
+      period: '/mês',
+      icon: <Database size={24} />,
+      features: ['Fácil acesso em qualquer lugar', 'Controle de acesso via web ou app', 'Acesso a plataforma na nuvem', 'Planos com discos 500GB'],
+      category: 'Backups'
+    },
+    {
+      id: 'cloud-backup-1tb',
+      planNumber: 403,
+      title: 'Cloud Backup 1TB',
+      description: 'Armazenamento em nuvem com privacidade, segurança e controle total sobre seus dados.',
+      price: 'R$ 249,90',
+      period: '/mês',
+      icon: <Database size={24} />,
+      features: ['Fácil acesso em qualquer lugar', 'Controle de acesso via web ou app', 'Acesso a plataforma na nuvem', 'Planos com discos 1024GB'],
+      category: 'Backups'
+    },
+    {
+      id: 'cloud-backup-2tb',
+      planNumber: 404,
+      title: 'Cloud Backup 2TB',
+      description: 'Armazenamento em nuvem com privacidade, segurança e controle total sobre seus dados.',
+      price: 'R$ 359,90',
+      period: '/mês',
+      icon: <Database size={24} />,
+      features: ['Fácil acesso em qualquer lugar', 'Controle de acesso via web ou app', 'Acesso a plataforma na nuvem', 'Planos com discos 2048GB'],
+      category: 'Backups'
+    },
+    {
+      id: 'synccloud-1tb',
+      planNumber: 405,
+      title: 'SyncCloud 1TB',
+      description: 'Armazenamento em nuvem com privacidade, segurança e controle total sobre seus dados.',
+      price: 'R$ 379,90',
+      period: '/mês',
+      icon: <Database size={24} />,
+      features: ['Fácil acesso em qualquer lugar', 'Controle de acesso via web ou app', 'Integração com domínio próprio', 'Planos com discos 1048GB'],
+      category: 'Backups'
+    },
+    {
+      id: 'nexcloud-1tb',
+      planNumber: 406,
+      title: 'NexCloud 1TB',
+      description: 'Armazenamento em nuvem com privacidade, segurança e controle total sobre seus dados.',
+      price: 'R$ 579,90',
+      period: '/mês',
+      icon: <Database size={24} />,
+      features: ['Fácil acesso em qualquer lugar', 'Controle de acesso via web ou app', 'Integração com domínio próprio', 'Planos com discos 1048GB'],
+      category: 'Backups'
     },
     {
       id: 'licenses',
@@ -676,7 +782,8 @@ const ProductsPage = () => {
       price: 'Sob consulta',
       period: '',
       icon: <Terminal size={24} />,
-      features: ['Ativação Imediata', 'Suporte Técnico', 'Preços Competitivos', 'Gestão Centralizada']
+      features: ['Ativação Imediata', 'Suporte Técnico', 'Preços Competitivos', 'Gestão Centralizada'],
+      category: 'Softwares'
     }
   ];
 
@@ -700,6 +807,11 @@ const ProductsPage = () => {
     }
   };
 
+  const [selectedCategory, setSelectedCategory] = useState('Hospedagem');
+  const categories = ['Hospedagem', 'Segurança', 'Softwares', 'Backups', 'Servidores'];
+
+  const filteredProducts = products.filter(p => p.category === selectedCategory);
+
   return (
     <div className="space-y-12">
       <header className="max-w-3xl">
@@ -710,48 +822,92 @@ const ProductsPage = () => {
         </p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {products.map((product) => (
-          <div key={product.id} className="bg-surface-container-low rounded-2xl p-8 border border-outline-variant/10 hover:border-primary/30 transition-all group flex flex-col h-full">
-            <div className="flex justify-between items-start mb-6">
-              <div className="p-3 bg-primary/5 rounded-xl text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
-                {product.icon}
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-black text-primary">{product.price}</div>
-                <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">{product.period}</div>
-              </div>
-            </div>
-            
-            <h3 className="font-headline text-xl font-bold mb-3 group-hover:text-primary transition-colors">{product.title}</h3>
-            <p className="text-on-surface-variant text-sm mb-8 flex-grow">{product.description}</p>
-            
-            <ul className="space-y-3 mb-8">
-              {product.features.map((feature, i) => (
-                <li key={i} className="flex items-center gap-2 text-xs font-medium text-on-surface">
-                  <CheckCircle size={14} className="text-primary" />
-                  {feature}
-                </li>
-              ))}
-            </ul>
-
-            <button 
-              onClick={() => handlePlanMigration(product)}
-              disabled={isMigrating === product.id}
-              className="w-full py-4 bg-surface-container-highest text-on-surface font-bold rounded-xl hover:bg-primary hover:text-on-primary transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+      <div className="flex gap-8">
+        <div className="w-64 space-y-2">
+          {categories.map((category) => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`w-full text-left px-4 py-3 rounded-xl font-bold text-sm transition-all ${
+                selectedCategory === category
+                  ? 'bg-primary text-on-primary'
+                  : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-highest'
+              }`}
             >
-              {isMigrating === product.id ? 'Migrando...' : 'Assinar Agora'}
+              {category}
             </button>
-          </div>
-        ))}
+          ))}
+        </div>
+
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {filteredProducts.map((product) => (
+            <div key={product.id} className="bg-surface-container-low rounded-3xl p-8 border border-outline-variant/10 hover:border-primary/50 transition-all duration-300 group flex flex-col h-full hover:shadow-lg hover:shadow-primary/5">
+              <div className="flex justify-between items-start mb-6">
+                <div className="p-4 bg-primary/10 rounded-2xl text-primary group-hover:bg-primary group-hover:text-on-primary transition-all duration-300">
+                  {product.icon}
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-black text-primary tracking-tighter">{product.price}</div>
+                  <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">{product.period}</div>
+                </div>
+              </div>
+              
+              <h3 className="font-headline text-2xl font-bold mb-3 group-hover:text-primary transition-colors">{product.title}</h3>
+              <p className="text-on-surface-variant text-sm mb-8 flex-grow leading-relaxed">{product.description}</p>
+              
+              <ul className="space-y-3 mb-8">
+                {product.features.map((feature, i) => (
+                  <li key={i} className="flex items-center gap-2 text-xs font-medium text-on-surface">
+                    <CheckCircle size={16} className="text-primary" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+
+              <button 
+                onClick={() => product.category === 'Servidores' ? setIsOpen(true) : handlePlanMigration(product)}
+                disabled={product.category !== 'Servidores' && isMigrating === product.id}
+                className="w-full py-4 bg-surface-container-highest text-on-surface font-bold rounded-xl hover:bg-primary hover:text-on-primary transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {product.category === 'Servidores' ? 'Consultar' : (isMigrating === product.id ? 'Migrando...' : 'Assinar Agora')}
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
+
+      {selectedCategory === 'Segurança' && (
+        <div className="flex gap-8 mt-16">
+          <div className="w-64"></div>
+          <div className="flex-1 bg-surface-container-low p-8 rounded-3xl">
+            <h2 className="font-headline text-3xl font-extrabold mb-8">Perguntas frequentes sobre certificação SSL</h2>
+            <div className="space-y-6">
+              {[
+                { q: '1. O que é um Certificado SSL', a: 'O HTTPS é a versão segura do HTTP, usado para proteger transações online. Ele criptografa dados com um certificado digital, garantindo sites seguros. Navegadores como Chrome, Firefox e Edge mostram um cadeado verde quando o site é seguro. Transmitindo mais confiança pra quem navega.' },
+                { q: '2. Como funciona o SSL?', a: 'O SSL criptografa os dados trocados entre o usuário e o site, protegendo informações como senhas e dados financeiros. Além disso, garante que o navegador do usuário está se conectando ao site legítimo e não a um site falso que tenta roubar informações' },
+                { q: '3. Porque é necessário utilizar o certificado SSL?', a: 'Por segurança, a maioria das pessoas hesita em compartilhar dados confidenciais online, a menos que tenham a garantia de que suas informações estarão seguras. A maneira mais eficaz de garantir essa proteção e conquistar a confiança dos consumidores é instalar um certificado SSL, que comprova a identidade do seu site e assegura a segurança das transações.' },
+                { q: '4. Como saber se o meu certificado SSL está funcionando perfeitamente?', a: 'Acesse a sua URL via HTTPS:// e clique duas vezes sobre o cadeado que aparece no canto superior direito do Google Chrome. Em seguida, clique no botão Informações do certificado... Ao abrir o certificado, clique na aba Detalhes. Na aba Detalhes, clique em Requerente. O tipo do seu certificado está escrito na segunda linha, no primeiro campo.' },
+                { q: '5. Posso instalar o Certificado SSL da Hospeda Maringá em outro servidor?', a: 'Sim! Você pode instalar o certificado SSL da Hospeda Maringá, em outro servidor. Assim que o Certificado for gerado, você terá a opção para baixar e instalar em qualquer servidor que tenha suporte para Certificado SSL.' }
+              ].map((item, i) => (
+                <div key={i} className="border-b border-outline-variant/10 pb-6">
+                  <h3 className="font-bold text-lg mb-2">{item.q}</h3>
+                  <p className="text-on-surface-variant text-sm leading-relaxed">{item.a}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-primary/5 rounded-3xl p-12 flex flex-col md:flex-row items-center justify-between gap-8 border border-primary/10">
         <div className="max-w-xl">
           <h2 className="text-3xl font-bold font-headline mb-4">Precisa de uma solução personalizada?</h2>
           <p className="text-on-surface-variant">Nossos arquitetos de nuvem podem desenhar uma infraestrutura sob medida para as necessidades específicas do seu negócio.</p>
         </div>
-        <button className="px-8 py-4 bg-primary text-on-primary rounded-xl font-bold shadow-lg hover:shadow-primary/20 transition-all active:scale-95 whitespace-nowrap">
+        <button 
+          onClick={() => setIsOpen(true)}
+          className="px-8 py-4 bg-primary text-on-primary rounded-xl font-bold shadow-lg hover:shadow-primary/20 transition-all active:scale-95 whitespace-nowrap"
+        >
           Falar com Especialista
         </button>
       </div>
@@ -759,14 +915,15 @@ const ProductsPage = () => {
   );
 };
 
-const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewStatus, onTicketClick, onViewProjects, onViewBilling }: { 
+const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewStatus, onTicketClick, onViewProjects, onViewBilling, setIsAIChatOpen }: { 
   onManageService: (id: string) => void, 
   onViewActivity: () => void,
   onOpenTicket: () => void,
   onViewStatus: () => void,
   onTicketClick: (id: string) => void,
   onViewProjects: () => void,
-  onViewBilling: () => void
+  onViewBilling: () => void,
+  setIsAIChatOpen: (open: boolean) => void
 }) => {
   const [cpu, setCpu] = useState(42);
   const [mem, setMem] = useState(85);
@@ -1019,21 +1176,25 @@ const DashboardPage = ({ onManageService, onViewActivity, onOpenTicket, onViewSt
 const BillingPage = ({ userProfile, invoices, setInvoices, onOpenTicket }: { userProfile: UserProfile, invoices: Invoice[], setInvoices: (invoices: Invoice[]) => void, onOpenTicket: () => void }) => {
   const [isCreditModalOpen, setIsCreditModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState({ name: 'Enterprise Cloud Node', icon: <Server size={20} />, next: '12 de Out, 2024' });
+  const [selectedPlan, setSelectedPlan] = useState({ id: 'hosting-inicial', name: 'Inicial', price: 'R$ 31,90', icon: <Zap size={20} />, next: '21/04/2026' });
+  const [subscribedPlans, setSubscribedPlans] = useState([
+    { id: 'hosting-inicial', name: 'Inicial', price: 'R$ 31,90', icon: <Zap size={20} />, next: '21/04/2026' },
+    { id: 'ssl-positive', name: 'Positive SSL', price: 'R$ 129,90', icon: <ShieldCheck size={20} />, next: '21/04/2026' },
+    { id: 'cloud-backup-200gb', name: 'Cloud Backup 200GB', price: 'R$ 79,90', icon: <Database size={20} />, next: '21/04/2026' },
+  ]);
   const [creditAmount, setCreditAmount] = useState('10,00');
   const [paymentMethod, setPaymentMethod] = useState('Pix');
   
   const availablePlans = [
-    { id: '101', name: 'Hospedagem Compartilhada', icon: <Globe size={20} /> },
-    { id: '102', name: 'Servidores VPS', icon: <Cpu size={20} /> },
-    { id: '103', name: 'Servidores Dedicados', icon: <Server size={20} /> },
-    { id: '104', name: 'Certificados SSL', icon: <ShieldCheck size={20} /> },
-    { id: '105', name: 'Backup de Dados', icon: <Database size={20} /> },
-    { id: '106', name: 'Licenças e Softwares', icon: <Terminal size={20} /> },
+    { id: 'hosting-inicial', name: 'Inicial', price: 'R$ 31,90', icon: <Zap size={20} /> },
+    { id: 'hosting-corporativo', name: 'Corporativo', price: 'R$ 81,90', icon: <Briefcase size={20} /> },
+    { id: 'hosting-avancado', name: 'Avançado', price: 'R$ 159,90', icon: <Rocket size={20} /> },
+    { id: 'vps', name: 'Servidores VPS', price: 'Sob consulta', icon: <Cpu size={20} /> },
+    { id: 'dedicated', name: 'Servidores Dedicados', price: 'Sob consulta', icon: <Server size={20} /> },
   ];
 
   const handleUpgrade = (plan: any) => {
-    setSelectedPlan({ ...plan, next: '12 de Out, 2024' });
+    setSelectedPlan({ ...plan, next: '21/04/2026' });
     setIsUpgradeModalOpen(false);
     onOpenTicket();
   };
@@ -1277,8 +1438,8 @@ const BillingPage = ({ userProfile, invoices, setInvoices, onOpenTicket }: { use
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16"></div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
               <div className="md:border-r md:border-outline-variant/10 md:pr-8">
-                <h1 className="text-3xl font-extrabold text-on-surface tracking-tight font-headline mb-2">Enterprise Cloud Node</h1>
-                <p className="text-xs text-on-surface-variant font-medium">Faturado anualmente • Próxima renovação: 12 de Out, 2024</p>
+                <h1 className="text-3xl font-extrabold text-on-surface tracking-tight font-headline mb-2">{selectedPlan.name} - {selectedPlan.price}</h1>
+                <p className="text-xs text-on-surface-variant font-medium">Faturado mensalmente • Próxima renovação: {selectedPlan.next}</p>
                 
                 <div className="mt-8 flex flex-wrap gap-3">
                   <button 
@@ -1342,15 +1503,17 @@ const BillingPage = ({ userProfile, invoices, setInvoices, onOpenTicket }: { use
         <div className="lg:col-span-4 bg-surface-container-lowest rounded-xl p-8 shadow-sm border border-outline-variant/10">
           <h3 className="font-headline text-xl font-bold mb-6">Planos Assinados</h3>
           <div className="space-y-4 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
-            <div className="flex items-center gap-4 p-4 rounded-xl border border-outline-variant/5">
-              <div className="w-10 h-10 text-primary rounded-lg flex items-center justify-center shrink-0">
-                {selectedPlan.icon}
+            {subscribedPlans.map(plan => (
+              <div key={plan.id} className="flex items-center gap-4 p-4 rounded-xl border border-outline-variant/5">
+                <div className="w-10 h-10 text-primary rounded-lg flex items-center justify-center shrink-0">
+                  {plan.icon}
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-on-surface">{plan.name} - {plan.price}</h4>
+                  <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">Próxima: {plan.next}</p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-bold text-sm text-on-surface">{selectedPlan.name}</h4>
-                <p className="text-[10px] text-on-surface-variant font-medium uppercase tracking-wider">Próxima: {selectedPlan.next}</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
@@ -1384,7 +1547,7 @@ const BillingPage = ({ userProfile, invoices, setInvoices, onOpenTicket }: { use
                     <div className="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
                       {plan.icon}
                     </div>
-                    <span className="font-bold text-sm text-on-surface">{plan.name}</span>
+                    <span className="font-bold text-sm text-on-surface">{plan.name} - {plan.price}</span>
                   </button>
                 ))}
               </div>
@@ -2012,7 +2175,7 @@ const BillingPage = ({ userProfile, invoices, setInvoices, onOpenTicket }: { use
   );
 };
 
-const SupportPage = ({ onTicketClick }: { onTicketClick: (id: string) => void }) => {
+const SupportPage = ({ onTicketClick, onOpenTicket, onGenerateInvoice }: { onTicketClick: (id: string) => void, onOpenTicket: () => void, onGenerateInvoice: (amount: number) => void }) => {
   const [filter, setFilter] = useState<'Todos' | 'Abertos' | 'Fechados'>('Todos');
   const [search, setSearch] = useState('');
 
@@ -2048,13 +2211,19 @@ const SupportPage = ({ onTicketClick }: { onTicketClick: (id: string) => void })
         </div>
 
         <div className="md:col-span-2 grid grid-cols-2 gap-4">
-          <button className="flex flex-col items-center justify-center gap-3 bg-surface-container-highest text-on-surface p-6 rounded-xl font-bold active:scale-95 transition-all border border-outline-variant/20 hover:bg-surface-container-high group">
+          <button 
+            onClick={() => onGenerateInvoice(90.00)}
+            className="flex flex-col items-center justify-center gap-3 bg-surface-container-highest text-on-surface p-6 rounded-xl font-bold active:scale-95 transition-all border border-outline-variant/20 hover:bg-surface-container-high group"
+          >
             <div className="p-3 bg-primary/10 rounded-full text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
               <Zap size={24} />
             </div>
-            <span className="text-xs uppercase tracking-widest">Fast-Track</span>
+            <span className="text-xs uppercase tracking-widest">Suporte Prioritário</span>
           </button>
-          <button className="flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-primary to-primary-container text-on-primary p-6 rounded-xl font-bold active:scale-95 transition-all shadow-lg hover:shadow-primary/20 group">
+          <button 
+            onClick={onOpenTicket}
+            className="flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-primary to-primary-container text-on-primary p-6 rounded-xl font-bold active:scale-95 transition-all shadow-lg hover:shadow-primary/20 group"
+          >
             <div className="p-3 bg-white/20 rounded-full text-white">
               <Plus size={24} />
             </div>
@@ -2274,7 +2443,7 @@ const CreateTicketPage = ({ onBack }: { onBack: () => void }) => {
   };
 
   return (
-    <div className="space-y-8 max-w-3xl">
+    <div className="space-y-8 max-w-3xl mx-auto">
       <button 
         onClick={onBack}
         className="flex items-center gap-2 text-on-surface-variant hover:text-primary font-bold transition-colors group"
@@ -2298,6 +2467,7 @@ const CreateTicketPage = ({ onBack }: { onBack: () => void }) => {
                 <option>Suporte Técnico</option>
                 <option>Financeiro</option>
                 <option>Comercial</option>
+                <option>Projetos</option>
               </select>
             </div>
             <div className="space-y-2">
@@ -2335,6 +2505,7 @@ const CreateTicketPage = ({ onBack }: { onBack: () => void }) => {
               <option>Baixa</option>
               <option>Média</option>
               <option>Alta</option>
+              <option>Prioridade</option>
             </select>
           </div>
 
@@ -2348,25 +2519,34 @@ const CreateTicketPage = ({ onBack }: { onBack: () => void }) => {
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Anexos</label>
-            <input 
-              type="file" 
-              multiple
-              onChange={(e) => setFiles(Array.from(e.target.files || []))}
-              className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-            />
-          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Anexos</label>
+              <input 
+                type="file" 
+                multiple
+                onChange={(e) => setFiles(Array.from(e.target.files || []))}
+                className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              />
+              <p className="text-[10px] text-on-surface-variant">formatos de anexos permitidos: .jpg, .png, .gif , .pdf 20MB</p>
+            </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Código de Segurança: {generatedCode}</label>
-            <input 
-              type="text" 
-              value={securityCode}
-              onChange={(e) => setSecurityCode(e.target.value)}
-              className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-              placeholder="Digite o código acima"
-            />
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Código de Segurança</label>
+              <div className="relative">
+                <input 
+                  type="text" 
+                  value={securityCode}
+                  onChange={(e) => setSecurityCode(e.target.value)}
+                  className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all pr-20"
+                  placeholder="Digite o código"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xl font-black text-primary bg-primary/10 px-2 py-0.5 rounded pointer-events-none">
+                  {generatedCode}
+                </span>
+              </div>
+              <p className="text-[10px] text-on-surface-variant">informe o código de segurança para evitar spam ou boot</p>
+            </div>
           </div>
 
           <div className="flex justify-end gap-4">
@@ -2422,7 +2602,7 @@ const StatusPage = () => (
               {[...Array(30)].map((_, j) => (
                 <div 
                   key={j} 
-                  className={`flex-1 rounded-full ${j === 25 && service.status === 'degraded' ? 'bg-secondary h-4' : 'bg-primary h-8'} opacity-${Math.max(20, 100 - (29-j)*2)}`}
+                  className={`flex-1 rounded-full ${j === 25 && service.status === 'degraded' ? 'bg-[#08ac76] h-4' : 'bg-[#08ac76] h-8'} opacity-${Math.max(20, 100 - (29-j)*2)}`}
                 />
               ))}
             </div>
@@ -2495,6 +2675,15 @@ const DomainsPage = () => {
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('pt-BR');
 
+  const categories = [
+    { ext: '.br', desc: 'Pessoas físicas ou jurídicas.' },
+    { ext: '.com.br', desc: 'Comércio em geral.' },
+    { ext: '.net.br', desc: 'Provedores de serviços de Internet.' },
+    { ext: '.org.br', desc: 'Organizações sem fins lucrativos.' },
+    { ext: '.edu.br', desc: 'Instituições de ensino superior.' },
+    { ext: '.gov.br', desc: 'Órgãos do governo federal.' },
+  ];
+
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <h2 className="text-3xl font-bold mb-6 text-on-surface">Consulta de Domínios</h2>
@@ -2514,6 +2703,7 @@ const DomainsPage = () => {
           Consultar
         </button>
       </div>
+
 
       {loading && <p className="text-center text-on-surface-variant">Consultando disponibilidade...</p>}
       {error && <p className="text-error text-center font-bold">{error}</p>}
@@ -2563,6 +2753,15 @@ const DomainsPage = () => {
           )}
         </div>
       )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
+        {categories.map((cat) => (
+          <div key={cat.ext} className="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/20 hover:border-primary/50 transition-colors">
+            <h3 className="text-xl font-bold text-primary mb-2">{cat.ext}</h3>
+            <p className="text-sm text-on-surface-variant">{cat.desc}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
@@ -2984,7 +3183,7 @@ const ProjectsPage = () => (
         <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-6">Gerenciamento de Projetos</h1>
         <p className="text-on-surface-variant text-lg leading-relaxed">Coordene implantações de infraestrutura e auditorias de segurança com sua equipe.</p>
       </div>
-      <button className="flex items-center gap-2 bg-primary text-on-primary px-8 py-4 rounded-xl font-bold active:scale-95 transition-all shadow-lg">
+      <button className="flex items-center gap-2 bg-primary text-on-primary px-8 py-4 rounded-xl font-bold active:scale-95 transition-all shadow-lg" onClick={() => setCurrentPage('create-ticket')}>
         <Plus size={20} />
         <span>Novo Projeto</span>
       </button>
@@ -3416,9 +3615,7 @@ const ServiceManagePage = ({ serviceId, onBack }: { serviceId: string, onBack: (
 
 // --- Main App ---
 
-const SupportWidget = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
+const SupportWidget = ({ isAIChatOpen, setIsAIChatOpen, isOpen, setIsOpen }: { isAIChatOpen: boolean, setIsAIChatOpen: (open: boolean) => void, isOpen: boolean, setIsOpen: (open: boolean) => void }) => {
   const [messages, setMessages] = useState<{role: 'user' | 'model', text: string}[]>([
     { role: 'model', text: AI_GREETING }
   ]);
@@ -3762,6 +3959,8 @@ const SupportWidget = () => {
 
 export default function MonolithApp() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [activityCategory, setActivityCategory] = useState('Toda Atividade');
@@ -3803,6 +4002,18 @@ export default function MonolithApp() {
   const handleManageService = (id: string) => {
     setSelectedServiceId(id);
     setCurrentPage('service-manage');
+  };
+
+  const handleGenerateInvoice = (amount: number) => {
+    const newInvoice: Invoice = {
+      id: `#${Math.floor(Math.random() * 10000)}`,
+      amount,
+      date: new Date().toLocaleDateString('pt-BR'),
+      status: 'Pendente',
+      transactionId: 'tx_' + Math.random().toString(36).substr(2, 9)
+    };
+    setInvoices([...invoices, newInvoice]);
+    setCurrentPage('billing');
   };
 
   const handleTicketClick = (id: string) => {
@@ -3848,11 +4059,12 @@ export default function MonolithApp() {
                 onTicketClick={handleTicketClick}
                 onViewProjects={() => setCurrentPage('projects')}
                 onViewBilling={() => setCurrentPage('billing')}
+                setIsAIChatOpen={setIsAIChatOpen}
               />
             )}
-            {currentPage === 'products' && <ProductsPage />}
+            {currentPage === 'products' && <ProductsPage setIsOpen={setIsOpen} />}
             {currentPage === 'billing' && <BillingPage userProfile={userProfile} invoices={invoices} setInvoices={setInvoices} onOpenTicket={() => setCurrentPage('create-ticket')} />}
-            {currentPage === 'support' && <SupportPage onTicketClick={handleTicketClick} />}
+            {currentPage === 'support' && <SupportPage onTicketClick={handleTicketClick} onOpenTicket={() => setCurrentPage('create-ticket')} onGenerateInvoice={handleGenerateInvoice} />}
             {currentPage === 'create-ticket' && <CreateTicketPage onBack={() => setCurrentPage('support')} />}
             {currentPage === 'ticket-detail' && selectedTicketId && (
               <TicketDetailPage ticketId={selectedTicketId} onBack={() => setCurrentPage('support')} />
@@ -3904,7 +4116,7 @@ export default function MonolithApp() {
         onPrivacyClick={() => setCurrentPage('privacy')}
       />
 
-      <SupportWidget />
+      <SupportWidget isAIChatOpen={isAIChatOpen} setIsAIChatOpen={setIsAIChatOpen} isOpen={isOpen} setIsOpen={setIsOpen} />
     </div>
   );
 }
